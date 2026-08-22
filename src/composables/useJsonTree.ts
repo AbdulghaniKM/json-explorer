@@ -107,7 +107,7 @@ export const useJsonTree = (
     }
     if (buffer.value.length < current.count) buffer.value = new Int32Array(current.count);
     rowCount.value = buildRows(current, expanded, buffer.value, filterSet.value);
-    rows.value = buffer.value;
+    rows.value = buffer.value.subarray(0, rowCount.value);
   };
 
   const applyDefaults = () => {

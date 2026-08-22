@@ -25,7 +25,7 @@
         class="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-muted"
       >
         <input v-model="onlyChanges" type="checkbox" class="accent-primary" />
-        Only differences
+        Hide unchanged branches
       </label>
 
       <div class="ms-auto flex flex-wrap items-center gap-1.5">
@@ -133,7 +133,7 @@
   const { success } = useToast();
 
   const ignoreArrayOrder = ref(false);
-  const onlyChanges = ref(false);
+  const onlyChanges = ref(true);
 
   const root = shallowRef<DiffNode | null>(null);
   const summary = shallowRef<DiffSummary | null>(null);

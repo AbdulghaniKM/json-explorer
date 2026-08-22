@@ -12,7 +12,7 @@ the page.
 | **Format** `/format`   | Beautify, minify, sort keys, drop empty values, escape/unescape, and repair malformed JSON                 |
 | **Compare** `/compare` | Structural diff that ignores key order, with optional array-order-insensitive matching                     |
 | **Analyze** `/analyze` | Characters, lines, raw/minified/gzip size, value-type distribution, depth, key counts and extremes         |
-| **Convert** `/convert` | TypeScript interfaces, Zod schema, YAML, CSV and query strings                                             |
+| **Convert** `/convert` | TypeScript interfaces, C# classes for System.Text.Json, Zod schema, YAML, CSV and query strings            |
 
 ## Built for large documents
 
@@ -34,9 +34,12 @@ That collapses somewhere around a few megabytes. JSON Explorer does none of thos
   quietly rewrite.
 - **Search by offset, not by walk.** Queries run as a native `indexOf` sweep over the text, and
   each hit is mapped back to its node with a binary search over the index — no tree traversal.
-- **Honest limits.** Tools that genuinely need the whole document in memory (convert, compare,
-  repair, drop-empties) say so and cap out instead of hanging the tab; the explorer, formatter and
-  analyzer keep working past those caps.
+- **Types without parsing.** TypeScript, C# and Zod generation infers its shape from the same flat
+  index, interning identical shapes as it goes, so a 191 MB document types in ~5 s and has no size
+  cap at all.
+- **Honest limits.** Tools that genuinely need the whole document in memory (YAML, CSV and query
+  conversion, compare, repair, drop-empties) say so and cap out instead of hanging the tab; the
+  explorer, formatter, analyzer and type generators keep working past those caps.
 
 Measured on this machine with a generated 33 MB / 2.8 M node document (Node 22):
 
@@ -102,7 +105,7 @@ src/
 │   ├── parse.ts           # JSON.parse wrapper with line/column error positions
 │   ├── repair.ts          # Tolerant scanner for malformed JSON + NDJSON
 │   ├── diff.ts            # Semantic diff with a node budget
-│   ├── convert.ts         # TypeScript, Zod, YAML, CSV, query string emitters
+│   ├── convert.ts         # TypeScript, C#, Zod, YAML, CSV, query string emitters
 │   ├── format.ts          # Escape, unescape, drop-empties, byte formatting
 │   ├── compress.ts        # Streaming gzip size via CompressionStream
 │   ├── highlight.ts       # HTML-escaped tokenizer for the editor overlay

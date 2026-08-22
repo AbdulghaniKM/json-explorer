@@ -3,10 +3,10 @@
     <div
       class="group flex items-start gap-1.5 rounded-md py-[3px] pe-2 font-mono text-[13px] leading-6"
       :class="rowClass"
-      :style="{ paddingInlineStart: `${overflowIndent + 4}px` }"
+      :style="{ paddingInlineStart: padStart }"
       @click="toggle"
     >
-      <span v-if="guides" class="flex self-stretch">
+      <span v-if="guides" class="my-[-0.1875rem] flex self-stretch">
         <span
           v-for="level in guides"
           :key="level"
@@ -42,12 +42,10 @@
         <span class="tok-punct">:</span>
       </span>
 
-      <template v-if="hasChildren">
+      <template v-if="isContainer">
         <span class="text-text-muted">
           {{ node.leftType === 'array' ? '[…]' : '{…}' }}
-          <span v-if="!expanded && node.kind !== 'unchanged'" class="text-[11px]">
-            {{ childSummary }}
-          </span>
+          <span v-if="summaryLabel" class="text-[11px]">{{ summaryLabel }}</span>
         </span>
       </template>
 
@@ -95,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-  import { minifyJson, pathToString, type JsonValue } from '@/lib/json';
+  import { pathToString } from '@/lib/json';
   import type { DiffNode as DiffNodeType } from '@/lib/json';
   import { useClipboard } from '@/composables/useClipboard';
 
@@ -109,9 +107,12 @@
   const MAX_GUIDES = 40;
 
   const guides = computed(() => Math.min(props.depth, MAX_GUIDES));
-  const overflowIndent = computed(() => (props.depth - guides.value) * 14);
+  const padStart = computed(
+    () => `calc(${props.depth - guides.value} * var(--indent-width) + 0.25rem)`,
+  );
 
   const hasChildren = computed(() => (props.node.children?.length ?? 0) > 0);
+  const isContainer = computed(() => hasChildren.value || props.node.unchangedLeaves !== undefined);
   const expanded = ref(props.node.kind !== 'unchanged' && props.depth < 6);
 
   const toggle = () => {
@@ -144,21 +145,25 @@
       })[props.node.kind],
   );
 
-  const childSummary = computed(() => {
-    const children = props.node.children ?? [];
-    const changed = children.filter((child) => child.kind !== 'unchanged').length;
-    return changed ? `${changed} changed` : '';
+  const count = (value: number) => value.toLocaleString('en-US');
+
+  const summaryLabel = computed(() => {
+    const node = props.node;
+    if (node.kind === 'unchanged') return `${count(node.unchangedLeaves ?? 0)} unchanged`;
+
+    const changes = node.children?.length ?? 0;
+    const hidden = node.unchangedLeaves ?? 0;
+    if (expanded.value) return hidden ? `${count(hidden)} unchanged hidden` : '';
+    return changes ? `${count(changes)} changed` : '';
   });
 
-  const preview = (value: JsonValue | undefined) => {
-    if (value === undefined) return '';
-    if (typeof value === 'string') return `"${value}"`;
-    const text = minifyJson(value);
-    return text.length > 120 ? `${text.slice(0, 120)}…` : text;
+  const display = (text: string | undefined, type?: string) => {
+    if (text === undefined) return '';
+    return type === 'string' ? `"${text}"` : text;
   };
 
-  const leftDisplay = computed(() => preview(props.node.left));
-  const rightDisplay = computed(() => preview(props.node.right));
+  const leftDisplay = computed(() => display(props.node.leftText, props.node.leftType));
+  const rightDisplay = computed(() => display(props.node.rightText, props.node.rightType));
 
   const typeClass = (type?: string) =>
     ({

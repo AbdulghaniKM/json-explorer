@@ -8,7 +8,16 @@ import { parseJson } from './parse';
 import { escapeToJsonString, removeEmptyValues, unescapeJsonString } from './format';
 import { parseNdjson, repairJson } from './repair';
 import { diffJson } from './diff';
-import { jsonToCsv, jsonToQueryString, jsonToTypeScript, jsonToYaml, jsonToZod } from './convert';
+import {
+  csharpFromShape,
+  jsonToCsv,
+  jsonToQueryString,
+  jsonToYaml,
+  shapeOfIndex,
+  typeScriptFromShape,
+  zodFromShape,
+  type JsonShape,
+} from './convert';
 
 export type TransformOp =
   | 'beautify'
@@ -20,11 +29,11 @@ export type TransformOp =
   | 'unescape'
   | 'repair';
 
-export type ConvertTarget = 'typescript' | 'zod' | 'yaml' | 'csv' | 'query';
+export type ConvertTarget = 'typescript' | 'csharp' | 'zod' | 'yaml' | 'csv' | 'query';
 
 export const PARSE_LIMIT = 32 * 1024 * 1024;
 export const REPAIR_LIMIT = 24 * 1024 * 1024;
-export const DIFF_LIMIT = 24 * 1024 * 1024;
+export const DIFF_LIMIT = 64 * 1024 * 1024;
 export const DIFF_NODE_BUDGET = 400_000;
 
 export type EngineRequest =
@@ -195,20 +204,42 @@ const transform = (request: Extract<EngineRequest, { kind: 'transform' }>): Engi
   };
 };
 
+const SHAPE_TARGETS = new Set<ConvertTarget>(['typescript', 'csharp', 'zod']);
+
+const renderShape = (target: ConvertTarget, shape: JsonShape, rootName: string): string => {
+  if (target === 'typescript') return typeScriptFromShape(shape, rootName || 'Root');
+  if (target === 'csharp') return csharpFromShape(shape, rootName || 'Root');
+  return zodFromShape(shape, rootName || 'root');
+};
+
+const renderValue = (target: ConvertTarget, value: JsonValue, delimiter: string): string => {
+  if (target === 'yaml') return jsonToYaml(value);
+  if (target === 'csv') return jsonToCsv(value, delimiter);
+  return jsonToQueryString(value);
+};
+
 const convert = (request: Extract<EngineRequest, { kind: 'convert' }>): EngineResponse => {
   const { id, text, target, rootName, delimiter } = request;
-  const parsed = parseForTools(text);
-  if ('message' in parsed) return { id, kind: 'convert', ok: false, message: parsed.message };
+  const failure = (message: string): EngineResponse => ({
+    id,
+    kind: 'convert',
+    ok: false,
+    message,
+  });
 
   let output = '';
   try {
-    if (target === 'typescript') output = jsonToTypeScript(parsed.value, rootName || 'Root');
-    else if (target === 'zod') output = jsonToZod(parsed.value, rootName || 'root');
-    else if (target === 'yaml') output = jsonToYaml(parsed.value);
-    else if (target === 'csv') output = jsonToCsv(parsed.value, delimiter);
-    else output = jsonToQueryString(parsed.value);
+    if (SHAPE_TARGETS.has(target)) {
+      const scanned = scanJson(text);
+      if (!scanned.ok) return failure(`Line ${scanned.error.line}: ${scanned.error.message}`);
+      output = renderShape(target, shapeOfIndex(text, scanned.index), rootName);
+    } else {
+      const parsed = parseForTools(text);
+      if ('message' in parsed) return failure(parsed.message);
+      output = renderValue(target, parsed.value, delimiter);
+    }
   } catch {
-    return { id, kind: 'convert', ok: false, message: 'This document could not be converted.' };
+    return failure('This document could not be converted.');
   }
 
   const truncated = output.length > PREVIEW_CHARS;

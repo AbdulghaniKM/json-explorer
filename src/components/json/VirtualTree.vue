@@ -20,7 +20,7 @@
                   ? 'bg-muted'
                   : 'hover:bg-muted/60',
           ]"
-          :style="{ height: `${ROW_HEIGHT}px`, paddingInlineStart: `${row.overflowIndent + 6}px` }"
+          :style="{ height: `${ROW_HEIGHT}px`, paddingInlineStart: row.padStart }"
           @click="onRowClick(row, $event)"
         >
           <span v-if="row.guides" class="flex self-stretch">
@@ -156,7 +156,7 @@
     id: number;
     depth: number;
     guides: number;
-    overflowIndent: number;
+    padStart: string;
     depthClass: string;
     container: boolean;
     arrayItem: boolean;
@@ -200,7 +200,7 @@
         id,
         depth,
         guides,
-        overflowIndent: (depth - guides) * 14,
+        padStart: `calc(${depth - guides} * var(--indent-width) + 0.375rem)`,
         depthClass: `depth-${depth % 6}`,
         container,
         arrayItem,

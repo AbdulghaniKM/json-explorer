@@ -20,7 +20,7 @@
       </div>
 
       <label
-        v-if="active === 'typescript' || active === 'zod'"
+        v-if="currentTarget.usesRootName"
         class="flex items-center gap-2 text-xs text-text-muted"
       >
         Root name
@@ -114,7 +114,7 @@
 
   definePage({
     route: '/convert',
-    head: 'Convert JSON — TypeScript, Zod, YAML, CSV',
+    head: 'Convert JSON — TypeScript, C#, Zod, YAML, CSV',
   });
 
   const TARGETS: Array<{
@@ -124,6 +124,7 @@
     extension: string;
     mime: string;
     hint: string;
+    usesRootName?: boolean;
   }> = [
     {
       id: 'typescript',
@@ -132,6 +133,16 @@
       extension: 'ts',
       mime: 'text/plain',
       hint: 'Interfaces are merged across array items — keys missing from some items become optional.',
+      usesRootName: true,
+    },
+    {
+      id: 'csharp',
+      label: 'C#',
+      icon: 'icon-[solar--code-file-linear]',
+      extension: 'cs',
+      mime: 'text/plain',
+      hint: 'Classes for System.Text.Json in .NET Core — every property carries [JsonPropertyName], and keys missing from some array items become nullable.',
+      usesRootName: true,
     },
     {
       id: 'zod',
@@ -140,6 +151,7 @@
       extension: 'ts',
       mime: 'text/plain',
       hint: 'A runtime schema plus an inferred type, ready to paste into a Zod project.',
+      usesRootName: true,
     },
     {
       id: 'yaml',

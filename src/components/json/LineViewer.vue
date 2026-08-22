@@ -21,7 +21,10 @@
               :key="level"
               class="line-guide"
               :class="`depth-${(level - 1) % 6}`"
-              :style="{ insetInlineStart: `calc(${(level - 1) * unit}ch + 0.75rem)` }"
+              :style="{
+                insetInlineStart: `calc(${(level - 1) * unit}ch + 0.75rem)`,
+                width: `${unit}ch`,
+              }"
             />
             <pre
               class="ps-3 font-mono text-[13px] leading-[21px] whitespace-pre"
