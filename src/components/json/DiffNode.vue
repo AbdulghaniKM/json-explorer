@@ -3,9 +3,18 @@
     <div
       class="group flex items-start gap-1.5 rounded-md py-[3px] pe-2 font-mono text-[13px] leading-6"
       :class="rowClass"
-      :style="{ paddingInlineStart: `${depth * 14 + 4}px` }"
+      :style="{ paddingInlineStart: `${overflowIndent + 4}px` }"
       @click="toggle"
     >
+      <span v-if="guides" class="flex self-stretch">
+        <span
+          v-for="level in guides"
+          :key="level"
+          class="indent-guide"
+          :class="`depth-${(level - 1) % 6}`"
+        />
+      </span>
+
       <button
         v-if="hasChildren"
         type="button"
@@ -96,6 +105,11 @@
   );
 
   const { copy } = useClipboard();
+
+  const MAX_GUIDES = 40;
+
+  const guides = computed(() => Math.min(props.depth, MAX_GUIDES));
+  const overflowIndent = computed(() => (props.depth - guides.value) * 14);
 
   const hasChildren = computed(() => (props.node.children?.length ?? 0) > 0);
   const expanded = ref(props.node.kind !== 'unchanged' && props.depth < 6);

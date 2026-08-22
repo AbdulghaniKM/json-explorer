@@ -15,9 +15,18 @@
           >
             {{ line.number }}
           </span>
-          <pre
-            class="ps-3 font-mono text-[13px] leading-[21px] whitespace-pre"
-          ><code v-html="line.html"></code></pre>
+          <div class="relative">
+            <span
+              v-for="level in line.guides"
+              :key="level"
+              class="line-guide"
+              :class="`depth-${(level - 1) % 6}`"
+              :style="{ insetInlineStart: `calc(${(level - 1) * unit}ch + 0.75rem)` }"
+            />
+            <pre
+              class="ps-3 font-mono text-[13px] leading-[21px] whitespace-pre"
+            ><code v-html="line.html"></code></pre>
+          </div>
         </div>
       </div>
     </div>
@@ -32,12 +41,34 @@
   const ROW_HEIGHT = 21;
   const OVERSCAN = 10;
   const MAX_LINE_CHARS = 2000;
+  const MAX_GUIDES = 40;
 
   const viewportRef = ref<HTMLElement | null>(null);
   const scrollTop = ref(0);
   const viewportHeight = ref(600);
   const offsets = shallowRef(new Uint32Array(0));
   const lineCount = ref(0);
+  const unit = ref(2);
+
+  const detectIndentUnit = (text: string): number => {
+    let from = text.indexOf('\n');
+    let inspected = 0;
+    while (from !== -1 && inspected < 200) {
+      const next = text.indexOf('\n', from + 1);
+      const end = next === -1 ? Math.min(text.length, from + 200) : next;
+      let width = 0;
+      for (let i = from + 1; i < end; i++) {
+        const code = text.charCodeAt(i);
+        if (code === 9) return 1;
+        if (code !== 32) break;
+        width++;
+      }
+      if (width > 0) return width;
+      from = next;
+      inspected++;
+    }
+    return 2;
+  };
 
   const buildOffsets = (text: string) => {
     if (!text) {
@@ -45,6 +76,8 @@
       lineCount.value = 0;
       return;
     }
+
+    unit.value = detectIndentUnit(text);
 
     let estimate = 1;
     let from = text.indexOf('\n');
@@ -81,16 +114,30 @@
   );
   const offsetY = computed(() => startLine.value * ROW_HEIGHT);
 
+  const leadingLevels = (raw: string): number => {
+    let width = 0;
+    for (let i = 0; i < raw.length; i++) {
+      const code = raw.charCodeAt(i);
+      if (code !== 32 && code !== 9) break;
+      width++;
+    }
+    return Math.min(Math.floor(width / unit.value), MAX_GUIDES);
+  };
+
   const visibleLines = computed(() => {
     const starts = offsets.value;
-    const out: Array<{ number: number; html: string }> = [];
+    const out: Array<{ number: number; html: string; guides: number }> = [];
     if (!starts.length) return out;
 
     for (let line = startLine.value; line < endLine.value; line++) {
       const from = starts[line];
       const to = Math.min(starts[line + 1] ?? props.text.length + 1, from + MAX_LINE_CHARS + 1);
       const raw = props.text.slice(from, Math.max(from, to - 1));
-      out.push({ number: line + 1, html: highlightJson(raw) || '&nbsp;' });
+      out.push({
+        number: line + 1,
+        html: highlightJson(raw) || '&nbsp;',
+        guides: leadingLevels(raw),
+      });
     }
 
     return out;

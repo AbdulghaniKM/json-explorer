@@ -20,9 +20,18 @@
                   ? 'bg-muted'
                   : 'hover:bg-muted/60',
           ]"
-          :style="{ height: `${ROW_HEIGHT}px`, paddingInlineStart: `${row.depth * 14 + 6}px` }"
+          :style="{ height: `${ROW_HEIGHT}px`, paddingInlineStart: `${row.overflowIndent + 6}px` }"
           @click="onRowClick(row, $event)"
         >
+          <span v-if="row.guides" class="flex self-stretch">
+            <span
+              v-for="level in row.guides"
+              :key="level"
+              class="indent-guide"
+              :class="`depth-${(level - 1) % 6}`"
+            />
+          </span>
+
           <button
             v-if="row.container && row.childCount > 0"
             type="button"
@@ -46,10 +55,10 @@
             <span class="tok-punct">:</span>
           </span>
 
-          <span v-if="row.container" class="shrink-0 font-mono text-[13px]">
-            <span class="tok-punct">{{ row.open }}</span>
+          <span v-if="row.container" class="shrink-0 font-mono text-[13px]" :class="row.depthClass">
+            <span>{{ row.open }}</span>
             <span v-if="!row.expanded" class="text-text-muted">{{ row.summary }}</span>
-            <span v-if="!row.expanded" class="tok-punct">{{ row.close }}</span>
+            <span v-if="!row.expanded">{{ row.close }}</span>
           </span>
 
           <span v-else class="truncate font-mono text-[13px]" :class="row.tokenClass">
@@ -141,9 +150,14 @@
     [NODE_NULL]: 'tok-null',
   };
 
+  const MAX_GUIDES = 40;
+
   interface TreeRow {
     id: number;
     depth: number;
+    guides: number;
+    overflowIndent: number;
+    depthClass: string;
     container: boolean;
     arrayItem: boolean;
     childCount: number;
@@ -179,9 +193,15 @@
       const childCount = index.childCount[id];
       const expanded = container && api.isExpanded(id);
 
+      const depth = index.depth[id];
+      const guides = Math.min(depth, MAX_GUIDES);
+
       out.push({
         id,
-        depth: index.depth[id],
+        depth,
+        guides,
+        overflowIndent: (depth - guides) * 14,
+        depthClass: `depth-${depth % 6}`,
         container,
         arrayItem,
         childCount,
