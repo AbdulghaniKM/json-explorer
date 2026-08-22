@@ -224,18 +224,63 @@ export const scanJson = (text: string): ScanResult => {
     }
   };
 
+  // Set by readStringEnd when it returns -1, so callers can report why.
+  let stringError = 'Unterminated string';
+  let stringErrorAt = 0;
+
+  const isHex = (code: number): boolean =>
+    (code >= 48 && code <= 57) || (code >= 97 && code <= 102) || (code >= 65 && code <= 70);
+
   const readStringEnd = (from: number): number => {
     let j = from + 1;
     while (j < length) {
       const code = text.charCodeAt(j);
       if (code === 92) {
-        j += 2;
-        continue;
+        const esc = text.charCodeAt(j + 1);
+        // " \ / b f n r t u
+        if (
+          esc === 34 ||
+          esc === 92 ||
+          esc === 47 ||
+          esc === 98 ||
+          esc === 102 ||
+          esc === 110 ||
+          esc === 114 ||
+          esc === 116
+        ) {
+          j += 2;
+          continue;
+        }
+        if (esc === 117) {
+          if (
+            j + 5 >= length ||
+            !isHex(text.charCodeAt(j + 2)) ||
+            !isHex(text.charCodeAt(j + 3)) ||
+            !isHex(text.charCodeAt(j + 4)) ||
+            !isHex(text.charCodeAt(j + 5))
+          ) {
+            stringError = 'A \\u escape needs four hex digits';
+            stringErrorAt = j;
+            return -1;
+          }
+          j += 6;
+          continue;
+        }
+        if (Number.isNaN(esc)) break;
+        stringError = `Invalid escape sequence \\${text[j + 1]}`;
+        stringErrorAt = j;
+        return -1;
       }
       if (code === 34) return j + 1;
-      if (code < 0x20) return -1;
+      if (code < 0x20) {
+        stringError = 'Strings cannot contain a raw control character';
+        stringErrorAt = j;
+        return -1;
+      }
       j++;
     }
+    stringError = 'Unterminated string';
+    stringErrorAt = from;
     return -1;
   };
 
@@ -283,16 +328,32 @@ export const scanJson = (text: string): ScanResult => {
     return id;
   };
 
+  // Set by readKey when it returns false, so callers can report why.
+  let keyError = 'Expected a property name in double quotes';
+  let keyErrorAt = 0;
+
   const readKey = (): boolean => {
     skipWhitespace();
-    if (text.charCodeAt(i) !== 34) return false;
+    if (text.charCodeAt(i) !== 34) {
+      keyError = 'Expected a property name in double quotes';
+      keyErrorAt = i;
+      return false;
+    }
     const end = readStringEnd(i);
-    if (end < 0) return false;
+    if (end < 0) {
+      keyError = stringError;
+      keyErrorAt = stringErrorAt;
+      return false;
+    }
     keyStart = i + 1;
     keyEnd = end - 1;
     i = end;
     skipWhitespace();
-    if (text.charCodeAt(i) !== 58) return false;
+    if (text.charCodeAt(i) !== 58) {
+      keyError = 'Expected a colon after the property name';
+      keyErrorAt = i;
+      return false;
+    }
     i++;
     skipWhitespace();
     return true;
@@ -333,14 +394,14 @@ export const scanJson = (text: string): ScanResult => {
         i++;
         closeContainer();
       } else if (isObject) {
-        if (!readKey()) return fail('Expected a property name in double quotes');
+        if (!readKey()) return fail(keyError, keyErrorAt);
         continue;
       } else {
         continue;
       }
     } else if (code === 34) {
       const end = readStringEnd(i);
-      if (end < 0) return fail('Unterminated string');
+      if (end < 0) return fail(stringError, stringErrorAt);
       const id = addNode(NODE_STRING, i);
       if (id < 0)
         return fail(`This document has more than ${MAX_NODES.toLocaleString('en-US')} nodes`);
@@ -362,12 +423,49 @@ export const scanJson = (text: string): ScanResult => {
         return fail(`Unexpected token ${text[i]}`);
       }
     } else if (code === 45 || (code >= 48 && code <= 57)) {
-      let j = i + 1;
-      while (j < length) {
-        const c = text.charCodeAt(j);
-        if ((c >= 48 && c <= 57) || c === 46 || c === 101 || c === 69 || c === 43 || c === 45) j++;
-        else break;
+      // RFC 8259 number grammar: -? (0 | [1-9][0-9]*) (. [0-9]+)? ([eE] [+-]? [0-9]+)?
+      let j = i;
+      if (text.charCodeAt(j) === 45) j++;
+
+      if (text.charCodeAt(j) === 48) {
+        j++;
+        const after = text.charCodeAt(j);
+        if (after >= 48 && after <= 57) return fail('Numbers cannot have a leading zero', i);
+      } else {
+        const intStart = j;
+        while (j < length) {
+          const c = text.charCodeAt(j);
+          if (c >= 48 && c <= 57) j++;
+          else break;
+        }
+        if (j === intStart) return fail('Expected a digit after the minus sign', i);
       }
+
+      if (text.charCodeAt(j) === 46) {
+        j++;
+        const fracStart = j;
+        while (j < length) {
+          const c = text.charCodeAt(j);
+          if (c >= 48 && c <= 57) j++;
+          else break;
+        }
+        if (j === fracStart) return fail('Expected a digit after the decimal point', i);
+      }
+
+      const exponent = text.charCodeAt(j);
+      if (exponent === 101 || exponent === 69) {
+        j++;
+        const sign = text.charCodeAt(j);
+        if (sign === 43 || sign === 45) j++;
+        const expStart = j;
+        while (j < length) {
+          const c = text.charCodeAt(j);
+          if (c >= 48 && c <= 57) j++;
+          else break;
+        }
+        if (j === expStart) return fail('Expected a digit in the exponent', i);
+      }
+
       const id = addNode(NODE_NUMBER, i);
       if (id < 0)
         return fail(`This document has more than ${MAX_NODES.toLocaleString('en-US')} nodes`);
@@ -435,7 +533,7 @@ export const scanJson = (text: string): ScanResult => {
       if (next === 44) {
         i++;
         skipWhitespace();
-        if (isObject && !readKey()) return fail('Expected a property name in double quotes');
+        if (isObject && !readKey()) return fail(keyError, keyErrorAt);
         break;
       }
 
