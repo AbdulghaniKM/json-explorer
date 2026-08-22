@@ -212,33 +212,40 @@
       full.value = '';
       size.value = 0;
       failure.value = '';
+      // Clear the flag too: an earlier run may still be in flight, and its stale-token
+      // return would otherwise leave the "Converting…" badge showing forever.
+      converting.value = false;
       return;
     }
 
     converting.value = true;
-    const response = await runOffThread<EngineResponseOf<'convert'>>({
-      kind: 'convert',
-      text: store.source,
-      target: active.value,
-      rootName: rootName.value,
-      delimiter: delimiter.value,
-    });
 
-    if (current !== token) return;
-    converting.value = false;
+    try {
+      const response = await runOffThread<EngineResponseOf<'convert'>>({
+        kind: 'convert',
+        text: store.source,
+        target: active.value,
+        rootName: rootName.value,
+        delimiter: delimiter.value,
+      });
 
-    if (response.ok) {
-      preview.value = response.preview;
-      full.value = response.text;
-      truncated.value = response.truncated;
-      size.value = response.size;
-      failure.value = '';
-    } else {
-      preview.value = '';
-      full.value = '';
-      truncated.value = false;
-      size.value = 0;
-      failure.value = response.message;
+      if (current !== token) return;
+
+      if (response.ok) {
+        preview.value = response.preview;
+        full.value = response.text;
+        truncated.value = response.truncated;
+        size.value = response.size;
+        failure.value = '';
+      } else {
+        preview.value = '';
+        full.value = '';
+        truncated.value = false;
+        size.value = 0;
+        failure.value = response.message;
+      }
+    } finally {
+      if (current === token) converting.value = false;
     }
   };
 

@@ -74,7 +74,7 @@ export const repairJson = (input: string): RepairResult => {
       continue;
     }
 
-    if (ch in QUOTES) {
+    if (Object.hasOwn(QUOTES, ch)) {
       const closing = QUOTES[ch];
       let value = '';
       i++;
@@ -137,7 +137,7 @@ export const repairJson = (input: string): RepairResult => {
         word += text[i];
         i++;
       }
-      out += word in KEYWORDS ? KEYWORDS[word] : JSON.stringify(word);
+      out += Object.hasOwn(KEYWORDS, word) ? KEYWORDS[word] : JSON.stringify(word);
       continue;
     }
 

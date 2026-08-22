@@ -68,7 +68,7 @@ export const deepEqual = (a: JsonValue, b: JsonValue): boolean => {
     const keysA = Object.keys(objA);
     const keysB = Object.keys(objB);
     if (keysA.length !== keysB.length) return false;
-    return keysA.every((key) => key in objB && deepEqual(objA[key], objB[key]));
+    return keysA.every((key) => Object.hasOwn(objB, key) && deepEqual(objA[key], objB[key]));
   }
 
   return false;
@@ -342,8 +342,8 @@ const build = (
       build(
         childKey,
         [...path, childKey],
-        childKey in leftObject ? leftObject[childKey] : MISSING,
-        childKey in rightObject ? rightObject[childKey] : MISSING,
+        Object.hasOwn(leftObject, childKey) ? leftObject[childKey] : MISSING,
+        Object.hasOwn(rightObject, childKey) ? rightObject[childKey] : MISSING,
         options,
         budget,
       ),

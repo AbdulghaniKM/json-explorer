@@ -168,30 +168,42 @@ export const useJsonStore = defineStore('json-workspace', () => {
     busy.value = op;
     note.value = '';
 
-    const response = await runOffThread<EngineResponseOf<'transform'>>({
-      kind: 'transform',
-      text: source.value,
-      op,
-      indent: indent.value,
-    });
+    // `busy` gates every other operation, so it must be cleared on any exit path.
+    try {
+      const response = await runOffThread<EngineResponseOf<'transform'>>({
+        kind: 'transform',
+        text: source.value,
+        op,
+        indent: indent.value,
+      });
 
-    busy.value = '';
+      if (!response.ok) return { ok: false, message: response.message };
 
-    if (!response.ok) return { ok: false, message: response.message };
-
-    replaceSource(response.text);
-    if (response.note) note.value = response.note;
-    return { ok: true, message: response.note };
+      replaceSource(response.text);
+      if (response.note) note.value = response.note;
+      return { ok: true, message: response.note };
+    } finally {
+      busy.value = '';
+    }
   };
 
-  const generate = async (records: number) => {
+  const generate = async (records: number): Promise<{ ok: boolean; message?: string }> => {
+    if (busy.value) return { ok: false, message: 'Another operation is still running' };
     busy.value = 'generate';
-    const response = await runOffThread<EngineResponseOf<'generate'>>({
-      kind: 'generate',
-      records,
-    });
-    busy.value = '';
-    replaceSource(response.text);
+
+    try {
+      const response = await runOffThread<EngineResponseOf<'generate'>>({
+        kind: 'generate',
+        records,
+      });
+
+      if (!response.ok) return { ok: false, message: response.message };
+
+      replaceSource(response.text);
+      return { ok: true };
+    } finally {
+      busy.value = '';
+    }
   };
 
   const swap = () => {

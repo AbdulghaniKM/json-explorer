@@ -159,28 +159,35 @@
       root.value = null;
       summary.value = null;
       message.value = 'Both sides need a JSON document.';
+      // Clear the flag too: an earlier run may still be in flight, and its stale-token
+      // return would otherwise leave the "Comparing…" state showing forever.
+      comparing.value = false;
       return;
     }
 
     comparing.value = true;
-    const response = await runOffThread<EngineResponseOf<'diff'>>({
-      kind: 'diff',
-      left,
-      right,
-      ignoreArrayOrder: ignoreArrayOrder.value,
-    });
 
-    if (current !== token) return;
-    comparing.value = false;
+    try {
+      const response = await runOffThread<EngineResponseOf<'diff'>>({
+        kind: 'diff',
+        left,
+        right,
+        ignoreArrayOrder: ignoreArrayOrder.value,
+      });
 
-    if (response.ok) {
-      root.value = response.root;
-      summary.value = response.summary;
-      message.value = '';
-    } else {
-      root.value = null;
-      summary.value = null;
-      message.value = response.message;
+      if (current !== token) return;
+
+      if (response.ok) {
+        root.value = response.root;
+        summary.value = response.summary;
+        message.value = '';
+      } else {
+        root.value = null;
+        summary.value = null;
+        message.value = response.message;
+      }
+    } finally {
+      if (current === token) comparing.value = false;
     }
   };
 

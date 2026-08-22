@@ -4,16 +4,17 @@
       <div class="absolute inset-x-0 top-0" :style="{ transform: `translateY(${offsetY}px)` }">
         <div
           v-for="line in visibleLines"
-          :key="line.number"
+          :key="line.key"
           class="flex items-start"
           :style="{ height: `${ROW_HEIGHT}px` }"
         >
           <span
-            class="sticky start-0 shrink-0 border-e border-border/60 bg-muted/40 px-2 text-end font-mono text-[13px] leading-[21px] text-text-muted/70 select-none"
+            class="sticky start-0 shrink-0 border-e border-border/60 bg-muted/40 px-2 text-end font-mono text-[13px] leading-[21px] text-text-muted select-none"
             :class="line.number === errorLine ? 'bg-error/15 font-semibold text-error' : ''"
             :style="{ width: gutterWidth }"
           >
-            {{ line.number }}
+            <span v-if="line.continued" :title="`Line ${line.number}, continued`">↳</span>
+            <template v-else>{{ line.number }}</template>
           </span>
           <div class="relative">
             <span
@@ -38,6 +39,7 @@
 
 <script setup lang="ts">
   import { highlightJson } from '@/lib/json';
+  import { buildLineStarts, buildRowPrefix, lineOfRow, sliceForRow } from '@/lib/json/lines';
 
   const props = withDefaults(defineProps<{ text: string; errorLine?: number }>(), { errorLine: 0 });
 
@@ -49,9 +51,12 @@
   const viewportRef = ref<HTMLElement | null>(null);
   const scrollTop = ref(0);
   const viewportHeight = ref(600);
-  const offsets = shallowRef(new Uint32Array(0));
+  const offsets = shallowRef<Uint32Array<ArrayBufferLike>>(new Uint32Array(0));
   const lineCount = ref(0);
   const unit = ref(2);
+  // Display rows, which differ from source lines once a long line is wrapped.
+  const rowPrefix = shallowRef<Uint32Array<ArrayBufferLike>>(new Uint32Array(0));
+  const rowCount = ref(0);
 
   const detectIndentUnit = (text: string): number => {
     let from = text.indexOf('\n');
@@ -77,45 +82,36 @@
     if (!text) {
       offsets.value = new Uint32Array(0);
       lineCount.value = 0;
+      rowPrefix.value = new Uint32Array(0);
+      rowCount.value = 0;
       return;
     }
 
     unit.value = detectIndentUnit(text);
 
-    let estimate = 1;
-    let from = text.indexOf('\n');
-    while (from !== -1) {
-      estimate++;
-      from = text.indexOf('\n', from + 1);
-    }
+    const index = buildLineStarts(text);
+    offsets.value = index.starts;
+    lineCount.value = index.count;
 
-    const starts = new Uint32Array(estimate + 1);
-    let line = 1;
-    starts[0] = 0;
-    let position = text.indexOf('\n');
-    while (position !== -1 && line <= estimate) {
-      starts[line++] = position + 1;
-      position = text.indexOf('\n', position + 1);
-    }
-    starts[estimate] = text.length + 1;
-
-    offsets.value = starts;
-    lineCount.value = estimate;
+    // A minified document is a single enormous line. Rendering one row per source line
+    // would show only its first MAX_LINE_CHARS characters with nothing to scroll, so wrap
+    // long lines across as many display rows as they need.
+    const rows = buildRowPrefix(index, text.length, MAX_LINE_CHARS);
+    rowPrefix.value = rows.prefix;
+    rowCount.value = rows.rowCount;
   };
 
-  const totalHeight = computed(() => lineCount.value * ROW_HEIGHT);
+  const totalHeight = computed(() => rowCount.value * ROW_HEIGHT);
   const gutterWidth = computed(() => `${Math.max(3.5, String(lineCount.value).length + 1.5)}ch`);
 
-  const startLine = computed(() =>
-    Math.max(0, Math.floor(scrollTop.value / ROW_HEIGHT) - OVERSCAN),
-  );
-  const endLine = computed(() =>
+  const startRow = computed(() => Math.max(0, Math.floor(scrollTop.value / ROW_HEIGHT) - OVERSCAN));
+  const endRow = computed(() =>
     Math.min(
-      lineCount.value,
+      rowCount.value,
       Math.ceil((scrollTop.value + viewportHeight.value) / ROW_HEIGHT) + OVERSCAN,
     ),
   );
-  const offsetY = computed(() => startLine.value * ROW_HEIGHT);
+  const offsetY = computed(() => startRow.value * ROW_HEIGHT);
 
   const leadingLevels = (raw: string): number => {
     let width = 0;
@@ -129,17 +125,35 @@
 
   const visibleLines = computed(() => {
     const starts = offsets.value;
-    const out: Array<{ number: number; html: string; guides: number }> = [];
-    if (!starts.length) return out;
+    const prefix = rowPrefix.value;
+    const out: Array<{
+      key: number;
+      number: number;
+      html: string;
+      guides: number;
+      continued: boolean;
+    }> = [];
+    if (!starts.length || !prefix.length) return out;
 
-    for (let line = startLine.value; line < endLine.value; line++) {
-      const from = starts[line];
-      const to = Math.min(starts[line + 1] ?? props.text.length + 1, from + MAX_LINE_CHARS + 1);
-      const raw = props.text.slice(from, Math.max(from, to - 1));
+    const index = { starts, count: lineCount.value };
+    const rows = { prefix, rowCount: rowCount.value };
+    const from = startRow.value;
+    const to = endRow.value;
+    let line = lineOfRow(rows, lineCount.value, from);
+
+    for (let row = from; row < to; row++) {
+      // Rows ascend, so walk forward rather than binary searching each one.
+      while (line + 1 < lineCount.value && prefix[line + 1] <= row) line++;
+
+      const slice = sliceForRow(index, rows, props.text.length, MAX_LINE_CHARS, row, line);
+      const raw = props.text.slice(slice.start, slice.end);
+
       out.push({
+        key: row,
         number: line + 1,
         html: highlightJson(raw) || '&nbsp;',
-        guides: leadingLevels(raw),
+        guides: slice.segment === 0 ? leadingLevels(raw) : 0,
+        continued: slice.segment > 0,
       });
     }
 
@@ -169,7 +183,12 @@
   const scrollToLine = (line: number) => {
     const element = viewportRef.value;
     if (!element) return;
-    element.scrollTop = Math.max(0, (line - 4) * ROW_HEIGHT);
+    // Source lines and display rows diverge once a long line wraps, so jump to the row
+    // where the line actually starts.
+    const prefix = rowPrefix.value;
+    const index = Math.min(Math.max(0, line - 1), Math.max(0, lineCount.value - 1));
+    const row = prefix.length > index ? prefix[index] : index;
+    element.scrollTop = Math.max(0, (row - 4) * ROW_HEIGHT);
     scrollTop.value = element.scrollTop;
   };
 

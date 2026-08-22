@@ -452,7 +452,10 @@ export const jsonToYaml = (value: JsonValue, indent = 0): string => {
 };
 
 const flattenRow = (value: JsonValue, prefix = ''): Record<string, string> => {
-  const row: Record<string, string> = {};
+  // Null-prototype: a document with a `__proto__` key would otherwise hit the prototype
+  // setter and vanish from the output, and keys like `constructor` would read back as
+  // functions from Object.prototype.
+  const row: Record<string, string> = Object.create(null);
   const type = valueType(value);
 
   if (type === 'object') {
@@ -486,13 +489,20 @@ export const jsonToCsv = (value: JsonValue, delimiter = ','): string => {
 
   const rows = records.map((record) => flattenRow(record));
   const columns: string[] = [];
+  const seen = new Set<string>();
   for (const row of rows) {
-    for (const key of Object.keys(row)) if (!columns.includes(key)) columns.push(key);
+    for (const key of Object.keys(row)) {
+      if (seen.has(key)) continue;
+      seen.add(key);
+      columns.push(key);
+    }
   }
 
   const header = columns.map((column) => escapeCsv(column, delimiter)).join(delimiter);
   const body = rows.map((row) =>
-    columns.map((column) => escapeCsv(row[column] ?? '', delimiter)).join(delimiter),
+    columns
+      .map((column) => escapeCsv(Object.hasOwn(row, column) ? row[column] : '', delimiter))
+      .join(delimiter),
   );
 
   return [header, ...body].join('\n');

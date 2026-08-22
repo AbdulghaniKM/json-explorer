@@ -82,12 +82,22 @@
 
     <div v-if="hasChildren && expanded">
       <DiffNode
-        v-for="child in node.children"
+        v-for="child in visibleChildren"
         :key="child.id"
         :node="child"
         :depth="depth + 1"
         :only-changes="onlyChanges"
       />
+      <button
+        v-if="hiddenChildren > 0"
+        type="button"
+        class="rounded-md py-[3px] pe-2 text-start font-mono text-[13px] leading-6 text-text-muted underline-offset-2 hover:text-text hover:underline"
+        :style="{ paddingInlineStart: childPadStart }"
+        @click.stop="showMore"
+      >
+        Show {{ Math.min(hiddenChildren, CHILD_PAGE).toLocaleString('en-US') }} more of
+        {{ hiddenChildren.toLocaleString('en-US') }}
+      </button>
     </div>
   </div>
 </template>
@@ -109,6 +119,30 @@
   const guides = computed(() => Math.min(props.depth, MAX_GUIDES));
   const padStart = computed(
     () => `calc(${props.depth - guides.value} * var(--indent-width) + 0.25rem)`,
+  );
+
+  // The diff tree is not virtualized: every rendered node is a real component instance.
+  // A diff with tens of thousands of changed siblings would mount them all at once and
+  // freeze the tab, so reveal them in pages instead.
+  const CHILD_PAGE = 200;
+  const shownChildren = ref(CHILD_PAGE);
+
+  const visibleChildren = computed(() => props.node.children?.slice(0, shownChildren.value) ?? []);
+  const hiddenChildren = computed(() =>
+    Math.max(0, (props.node.children?.length ?? 0) - shownChildren.value),
+  );
+  const childPadStart = computed(() => `calc(${props.depth + 1} * var(--indent-width) + 1.75rem)`);
+
+  const showMore = () => {
+    shownChildren.value += CHILD_PAGE;
+  };
+
+  // Collapsing and re-expanding a huge node should not leave every page mounted.
+  watch(
+    () => props.node,
+    () => {
+      shownChildren.value = CHILD_PAGE;
+    },
   );
 
   const hasChildren = computed(() => (props.node.children?.length ?? 0) > 0);

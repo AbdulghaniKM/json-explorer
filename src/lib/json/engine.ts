@@ -70,7 +70,8 @@ export type EngineResponse =
   | { id: number; kind: 'convert'; ok: false; message: string }
   | { id: number; kind: 'diff'; ok: true; root: DiffNode; summary: DiffSummary }
   | { id: number; kind: 'diff'; ok: false; message: string }
-  | { id: number; kind: 'generate'; ok: true; text: string };
+  | { id: number; kind: 'generate'; ok: true; text: string }
+  | { id: number; kind: 'generate'; ok: false; message: string };
 
 export type EngineResponseOf<K extends EngineResponse['kind']> = Extract<
   EngineResponse,
@@ -90,7 +91,63 @@ export interface EngineOutcome {
 
 const PREVIEW_CHARS = 120_000;
 
+/**
+ * Tools that materialize the document in memory walk it recursively, so they overflow the
+ * stack somewhere past a few thousand levels. Refuse well before that with a message that
+ * says what is actually wrong, instead of letting a RangeError escape.
+ */
+export const MAX_VALUE_DEPTH = 500;
+
 const megabytes = (value: number) => `${Math.round(value / (1024 * 1024))} MB`;
+
+/** Iterative, so measuring the depth can never overflow the stack itself. */
+export const exceedsDepth = (value: JsonValue, limit = MAX_VALUE_DEPTH): boolean => {
+  const values: JsonValue[] = [value];
+  const depths: number[] = [1];
+
+  while (values.length > 0) {
+    const current = values.pop() as JsonValue;
+    const depth = depths.pop() as number;
+    if (depth > limit) return true;
+
+    if (Array.isArray(current)) {
+      for (const item of current) {
+        values.push(item);
+        depths.push(depth + 1);
+      }
+    } else if (current !== null && typeof current === 'object') {
+      for (const key of Object.keys(current)) {
+        values.push((current as Record<string, JsonValue>)[key]);
+        depths.push(depth + 1);
+      }
+    }
+  }
+
+  return false;
+};
+
+const tooDeep = `This document is nested more than ${MAX_VALUE_DEPTH} levels deep. Explore, format and analyze still work — this tool has to hold the whole document in memory.`;
+
+/**
+ * A failure response shaped for the kind that was requested, so callers keep narrowing on
+ * `response.ok` and never have to special-case a crash.
+ */
+export const engineFailure = (request: EngineRequest, message: string): EngineResponse => {
+  if (request.kind === 'scan' || request.kind === 'validate') {
+    return {
+      id: request.id,
+      kind: request.kind,
+      ok: false,
+      error: { message, index: 0, line: 1, column: 1 },
+    };
+  }
+  return { id: request.id, kind: request.kind, ok: false, message };
+};
+
+export const failureMessageFor = (error: unknown): string =>
+  error instanceof RangeError
+    ? 'This document is too deeply nested or too large for this operation.'
+    : 'Something went wrong processing this document.';
 
 const parseForTools = (text: string): { value: JsonValue } | { message: string } => {
   if (text.length > PARSE_LIMIT) {
@@ -100,6 +157,7 @@ const parseForTools = (text: string): { value: JsonValue } | { message: string }
   }
   const parsed = parseJson(text);
   if (!parsed.ok) return { message: `Line ${parsed.error.line}: ${parsed.error.message}` };
+  if (exceedsDepth(parsed.value)) return { message: tooDeep };
   return { value: parsed.value };
 };
 
@@ -232,6 +290,9 @@ const convert = (request: Extract<EngineRequest, { kind: 'convert' }>): EngineRe
     if (SHAPE_TARGETS.has(target)) {
       const scanned = scanJson(text);
       if (!scanned.ok) return failure(`Line ${scanned.error.line}: ${scanned.error.message}`);
+      // shapeOfIndex and the renderers recurse per level, so gate on the depth the scan
+      // already measured rather than letting them overflow.
+      if (scanned.stats.depth > MAX_VALUE_DEPTH) return failure(tooDeep);
       output = renderShape(target, shapeOfIndex(text, scanned.index), rootName);
     } else {
       const parsed = parseForTools(text);
@@ -272,6 +333,10 @@ const diff = (request: Extract<EngineRequest, { kind: 'diff' }>): EngineResponse
   const b = parseJson(right);
   if (!b.ok)
     return { id, kind: 'diff', ok: false, message: `B · line ${b.error.line}: ${b.error.message}` };
+
+  if (exceedsDepth(a.value) || exceedsDepth(b.value)) {
+    return { id, kind: 'diff', ok: false, message: tooDeep };
+  }
 
   const result = diffJson(a.value, b.value, { ignoreArrayOrder, maxNodes: DIFF_NODE_BUDGET });
   return { id, kind: 'diff', ok: true, root: result.root, summary: result.summary };
@@ -322,7 +387,20 @@ const generate = (records: number): string => {
   return parts.join('');
 };
 
+/**
+ * Never throws. A crash here would leave the caller's promise unsettled forever, which in
+ * turn latches the store's `busy` flag and blocks every later operation, so every failure
+ * has to come back as an ordinary `ok: false` response instead.
+ */
 export const handleEngineRequest = (request: EngineRequest): EngineOutcome => {
+  try {
+    return runEngineRequest(request);
+  } catch (error) {
+    return { response: engineFailure(request, failureMessageFor(error)), transfer: [] };
+  }
+};
+
+const runEngineRequest = (request: EngineRequest): EngineOutcome => {
   if (request.kind === 'scan') {
     const result = scanJson(request.text);
     if (!result.ok) {

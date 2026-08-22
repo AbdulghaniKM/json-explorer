@@ -16,7 +16,8 @@ export const removeEmptyValues = (value: JsonValue): JsonValue => {
   }
   if (value === null || typeof value !== 'object') return value;
 
-  const cleaned: Record<string, JsonValue> = {};
+  // Null-prototype so a __proto__ key is kept as data instead of hitting the setter.
+  const cleaned: Record<string, JsonValue> = Object.create(null);
   for (const [key, item] of Object.entries(value as Record<string, JsonValue>)) {
     const next = removeEmptyValues(item);
     if (!isEmpty(next)) cleaned[key] = next;

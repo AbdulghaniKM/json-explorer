@@ -19,6 +19,13 @@ export const NODE_TYPE_NAMES: JsonValueType[] = [
 
 export const MAX_NODES = 8_000_000;
 
+/**
+ * Depth is stored per node in a Uint16Array, and emitJson caches one indent string per
+ * level, so unbounded nesting would silently wrap the depth and balloon that cache.
+ * Far deeper than any real document, and well past what JSON.parse itself survives.
+ */
+export const MAX_DEPTH = 10_000;
+
 export interface JsonIndex {
   count: number;
   type: Uint8Array;
@@ -386,6 +393,12 @@ export const scanJson = (text: string): ScanResult => {
       stack.push(id);
       parent = id;
       depth++;
+      if (depth > MAX_DEPTH) {
+        return fail(
+          `This document is nested more than ${MAX_DEPTH.toLocaleString('en-US')} levels deep`,
+          i,
+        );
+      }
       if (depth > maxDepth) maxDepth = depth;
       i++;
       skipWhitespace();
