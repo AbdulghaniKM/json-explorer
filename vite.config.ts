@@ -14,16 +14,7 @@ export default defineConfig({
     vue(),
     tailwindcss(),
     AutoImport({
-      imports: [
-        'vue',
-        'vue-router',
-        'pinia',
-        '@vueuse/core',
-        {
-          axios: [['default', 'axios'], 'isAxiosError', 'AxiosError'],
-          '@/plugins/axios': ['api', 'apiGet', 'apiPost', 'apiPut', 'apiPatch', 'apiDelete'],
-        },
-      ],
+      imports: ['vue', 'vue-router', 'pinia', '@vueuse/core'],
       dirs: ['src/composables/**', 'src/stores/**', 'src/types/**', 'src/config/**'],
       dirsScanOptions: {
         fileFilter: (file) => !file.endsWith('index.ts'),

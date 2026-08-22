@@ -13,11 +13,6 @@ dist-ssr
 *.local
 .vscode
 
-# Auto-generated type declarations
-auto-imports.d.ts
-components.d.ts
-src/types/routes.gen.d.ts
-
 # IDE-specific folders
 .claude/
 .cursor/

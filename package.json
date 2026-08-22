@@ -1,8 +1,8 @@
 {
-  "name": "vuetail",
+  "name": "json-explorer",
   "private": true,
   "version": "0.1.0",
-  "description": "A modern Vue 3 starter with Tailwind CSS v4, TypeScript, and an on-demand component registry.",
+  "description": "A fast, private, browser-only JSON toolkit: explorer, formatter, diff, analyzer and converters.",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,8 +21,6 @@
   },
   "dependencies": {
     "@vueuse/core": "^14.3.0",
-    "axios": "^1.16.1",
-    "date-fns": "^4.4.0",
     "motion-v": "^2.2.1",
     "pinia": "^3.0.4",
     "tailwindcss": "^4.3.0",

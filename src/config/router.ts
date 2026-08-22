@@ -1,7 +1,7 @@
 import type { RouteComponent, RouteMeta, RouteRecordRaw } from 'vue-router';
 
-// Eagerly import page components so we can read the route/head/layout/requiresAuth
-// options injected by the `definePage` macro (see customRoutePlugin in vite.config.ts).
+// Eagerly import page components so we can read the route/head/layout options
+// injected by the `definePage` macro (see definePagePlugin in vite.config.ts).
 //
 // Dev-only pages (filename prefixed with `_`, e.g. _theme.vue / _routes.vue) are
 // excluded from the glob in production so they are never *bundled* — not merely
@@ -76,7 +76,6 @@ for (const fullPath in modules) {
     meta: {
       layout: (component.layout as RouteMeta['layout']) ?? 'default',
       title: component.head as string | undefined,
-      requiresAuth: (component.requiresAuth as boolean | undefined) ?? false,
     },
   });
 }

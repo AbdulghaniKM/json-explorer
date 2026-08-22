@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Plugin, ViteDevServer } from 'vite';
 
-const FIELDS = ['route', 'head', 'layout', 'requiresAuth'] as const;
-const LAYOUTS = ['default', 'auth', 'dashboard', 'blank'];
+const FIELDS = ['route', 'head', 'layout'] as const;
+const LAYOUTS = ['default', 'blank'];
 
 const PAGES_DIR = 'src/pages';
 const ROUTES_DTS = 'src/types/routes.gen.d.ts';
@@ -114,8 +114,8 @@ function writeRoutesDts(): void {
 /**
  * Compile-time `definePage` macro for the file-based router.
  *
- * When a page's `<script setup>` calls `definePage({ route, head, layout,
- * requiresAuth })`, this extracts the static fields and re-emits them as a plain
+ * When a page's `<script setup>` calls `definePage({ route, head, layout })`,
+ * this extracts the static fields and re-emits them as a plain
  * `<script>` default export so `src/config/router.ts` can read them off the
  * component at build time. Invalid usage is reported as Vite warnings.
  *
@@ -141,14 +141,9 @@ export function definePagePlugin(): Plugin {
       const match = code.match(/definePage\(\s*(\{[\s\S]*?\})\s*\)/);
       if (!match) return;
       const cfg = match[1];
-      const where = id.split(/[\\/]/).slice(-2).join('/'); // e.g. pages/Login.vue
+      const where = id.split(/[\\/]/).slice(-2).join('/'); // e.g. pages/index.vue
 
       const str = (key: string) => cfg.match(new RegExp(`${key}\\s*:\\s*["']([^"']+)["']`))?.[1];
-      const bool = (key: string) => {
-        const m = cfg.match(new RegExp(`${key}\\s*:\\s*(true|false)`));
-        return m ? m[1] === 'true' : undefined;
-      };
-
       // ── Validation ───────────────────────────────────────────────────────
       // Detect top-level keys with string VALUES stripped first, so a colon
       // inside a title (e.g. head: 'Time: now') isn't mistaken for a key.
@@ -166,7 +161,6 @@ export function definePagePlugin(): Plugin {
       const route = str('route');
       const head = str('head');
       const layout = str('layout');
-      const requiresAuth = bool('requiresAuth');
 
       if (layout !== undefined && !LAYOUTS.includes(layout)) {
         this.warn(
@@ -181,17 +175,11 @@ export function definePagePlugin(): Plugin {
           );
         }
       }
-      if (keys.includes('requiresAuth') && requiresAuth === undefined) {
-        this.warn(
-          `definePage in ${where}: "requiresAuth" must be a literal true/false and was ignored.`,
-        );
-      }
 
-      const fields: Record<string, string | boolean> = {};
+      const fields: Record<string, string> = {};
       if (route !== undefined) fields.route = route;
       if (head !== undefined) fields.head = head;
       if (layout !== undefined) fields.layout = layout;
-      if (requiresAuth !== undefined) fields.requiresAuth = requiresAuth;
 
       const opts = Object.entries(fields)
         .map(([k, v]) => `  ${k}: ${JSON.stringify(v)},`)
