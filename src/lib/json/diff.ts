@@ -13,6 +13,7 @@ export interface DiffNode {
   leftType?: JsonValueType;
   rightType?: JsonValueType;
   children?: DiffNode[];
+  truncated?: boolean;
 }
 
 export interface DiffSummary {
@@ -25,6 +26,7 @@ export interface DiffSummary {
 
 export interface DiffOptions {
   ignoreArrayOrder?: boolean;
+  maxNodes?: number;
 }
 
 const MISSING = Symbol('missing');
@@ -82,12 +84,17 @@ const matchByValue = (left: JsonValue[], right: JsonValue[]): Array<[Side, Side]
   return pairs;
 };
 
+interface Budget {
+  remaining: number;
+}
+
 const build = (
   key: JsonPathSegment | null,
   path: JsonPathSegment[],
   left: Side,
   right: Side,
   options: DiffOptions,
+  budget: Budget,
 ): DiffNode => {
   const id = idFor(path);
 
@@ -123,6 +130,21 @@ const build = (
     const rightObject = rightValue as Record<string, JsonValue>;
     const keys = [...new Set([...Object.keys(leftObject), ...Object.keys(rightObject)])];
 
+    if (budget.remaining <= 0) {
+      return {
+        id,
+        key,
+        path,
+        kind: deepEqual(leftValue, rightValue) ? 'unchanged' : 'changed',
+        left: leftValue,
+        right: rightValue,
+        leftType,
+        rightType,
+        truncated: true,
+      };
+    }
+    budget.remaining -= keys.length;
+
     const children = keys.map((childKey) =>
       build(
         childKey,
@@ -130,6 +152,7 @@ const build = (
         childKey in leftObject ? leftObject[childKey] : MISSING,
         childKey in rightObject ? rightObject[childKey] : MISSING,
         options,
+        budget,
       ),
     );
 
@@ -157,8 +180,23 @@ const build = (
           index < rightArray.length ? rightArray[index] : MISSING,
         ]);
 
+    if (budget.remaining <= 0) {
+      return {
+        id,
+        key,
+        path,
+        kind: deepEqual(leftValue, rightValue) ? 'unchanged' : 'changed',
+        left: leftValue,
+        right: rightValue,
+        leftType,
+        rightType,
+        truncated: true,
+      };
+    }
+    budget.remaining -= pairs.length;
+
     const children = pairs.map(([leftItem, rightItem], index) =>
-      build(index, [...path, index], leftItem, rightItem, options),
+      build(index, [...path, index], leftItem, rightItem, options, budget),
     );
 
     return {
@@ -212,6 +250,7 @@ export const diffJson = (
   right: JsonValue,
   options: DiffOptions = {},
 ): { root: DiffNode; summary: DiffSummary } => {
-  const root = build(null, [], left, right, options);
+  const budget: Budget = { remaining: options.maxNodes ?? Number.POSITIVE_INFINITY };
+  const root = build(null, [], left, right, options, budget);
   return { root, summary: summarize(root) };
 };

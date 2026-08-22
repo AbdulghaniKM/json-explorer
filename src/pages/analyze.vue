@@ -15,10 +15,12 @@
         label="Sample"
         @click="store.loadSample"
       />
+      <UiAppBadge v-if="store.scanning" variant="info">Indexing…</UiAppBadge>
       <UiAppBadge :variant="store.isValid ? 'success' : store.isEmpty ? 'muted' : 'error'">
         {{ store.isEmpty ? 'Empty' : store.isValid ? 'Valid JSON' : 'Invalid JSON' }}
       </UiAppBadge>
       <UiAppBadge v-if="stats" variant="surface">root: {{ stats.rootType }}</UiAppBadge>
+      <UiAppBadge v-if="stats" variant="muted">indexed in {{ stats.scanMs }} ms</UiAppBadge>
     </div>
 
     <div class="grid gap-3 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
@@ -28,6 +30,7 @@
         class="h-[30vh] lg:h-[calc(100vh-13rem)]"
         :error="store.error"
         :valid="store.isValid"
+        :lines="stats?.lines ?? null"
       />
 
       <div v-if="stats" class="flex flex-col gap-3">
@@ -39,10 +42,10 @@
             icon="icon-[solar--text-field-linear]"
           />
           <JsonStatCard
-            label="Lines"
-            :value="format(stats.lines)"
-            :hint="`${format(stats.totalNodes)} nodes total`"
-            icon="icon-[solar--align-left-linear]"
+            label="Nodes"
+            :value="format(stats.totalNodes)"
+            :hint="`${format(stats.lines)} lines`"
+            icon="icon-[solar--structure-linear]"
           />
           <JsonStatCard
             label="Size"
@@ -52,8 +55,8 @@
           />
           <JsonStatCard
             label="Gzip"
-            :value="gzip === null ? '—' : formatBytes(gzip)"
-            :hint="gzip === null ? 'not available' : `${gzipRatio}% of raw size`"
+            :value="gzipLabel"
+            :hint="gzipHint"
             icon="icon-[solar--archive-minimalistic-linear]"
           />
         </div>
@@ -79,7 +82,7 @@
             </ul>
           </JsonPanel>
 
-          <JsonPanel title="Structure" icon="icon-[solar--structure-linear]">
+          <JsonPanel title="Structure" icon="icon-[solar--ruler-cross-pen-linear]">
             <dl class="divide-y divide-border/60 text-sm">
               <div
                 v-for="row in structureRows"
@@ -98,7 +101,11 @@
           </JsonPanel>
         </div>
 
-        <JsonPanel title="Most repeated keys" icon="icon-[solar--hashtag-linear]">
+        <JsonPanel
+          title="Most repeated keys"
+          icon="icon-[solar--hashtag-linear]"
+          :badge="stats.keyStatsPartial ? 'sampled' : undefined"
+        >
           <div v-if="stats.topKeys.length" class="flex flex-wrap gap-2 p-3">
             <span
               v-for="entry in stats.topKeys"
@@ -107,7 +114,7 @@
             >
               {{ entry.key }}
               <span class="rounded-full bg-primary/10 px-1.5 text-[11px] text-primary">
-                {{ entry.count }}
+                {{ format(entry.count) }}
               </span>
             </span>
           </div>
@@ -119,22 +126,35 @@
         v-else
         class="rounded-xl border border-border bg-surface"
         icon="icon-[solar--chart-square-linear]"
-        :variant="store.isEmpty ? 'neutral' : 'danger'"
-        :title="store.isEmpty ? 'Nothing to analyze yet' : 'Invalid JSON'"
+        :variant="store.isEmpty ? 'neutral' : store.scanning ? 'info' : 'danger'"
+        :title="
+          store.scanning
+            ? 'Indexing the document…'
+            : store.isEmpty
+              ? 'Nothing to analyze yet'
+              : 'Invalid JSON'
+        "
         :description="
-          store.isEmpty
-            ? 'Paste or open a document to see character counts, size, depth and key statistics.'
-            : store.error?.message
+          store.scanning
+            ? 'Statistics are collected during the index pass.'
+            : store.isEmpty
+              ? 'Paste or open a document to see counts, size, depth and key statistics.'
+              : store.error?.message
         "
       >
-        <UiAppButton variant="primary" label="Load sample" @click="store.loadSample" />
+        <UiAppButton
+          v-if="store.isEmpty"
+          variant="primary"
+          label="Load sample"
+          @click="store.loadSample"
+        />
       </UiAppEmptyState>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { analyzeJson, formatBytes, gzipSize } from '@/lib/json';
+  import { formatBytes, gzipSize, pathOf } from '@/lib/json';
   import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
 
   definePage({
@@ -142,17 +162,26 @@
     head: 'Analyze JSON — size, depth and key stats',
   });
 
+  const GZIP_LIMIT = 32 * 1024 * 1024;
+
   const { store, open } = useJsonWorkspace();
 
   const gzip = ref<number | null>(null);
+  const gzipSkipped = ref(false);
 
-  const stats = computed(() => (store.isValid ? analyzeJson(store.value, store.text) : null));
+  const stats = computed(() => store.stats);
 
   const format = (value: number) => value.toLocaleString('en-US');
 
-  const gzipRatio = computed(() => {
-    if (gzip.value === null || !stats.value?.bytes) return 0;
-    return Math.round((gzip.value / stats.value.bytes) * 100);
+  const gzipLabel = computed(() => {
+    if (gzipSkipped.value) return '—';
+    return gzip.value === null ? '…' : formatBytes(gzip.value);
+  });
+
+  const gzipHint = computed(() => {
+    if (gzipSkipped.value) return 'skipped above 32 MB';
+    if (gzip.value === null || !stats.value?.bytes) return 'compressing…';
+    return `${Math.round((gzip.value / stats.value.bytes) * 100)}% of raw size`;
   });
 
   const typeColors: Record<string, string> = {
@@ -177,38 +206,66 @@
       .sort((a, b) => b.count - a.count);
   });
 
+  const nodePath = (node: number | undefined) => {
+    const index = store.index;
+    if (!index || node === undefined) return '';
+    return pathOf(store.source, index, node);
+  };
+
   const structureRows = computed(() => {
     const current = stats.value;
     if (!current) return [];
     return [
       { label: 'Max depth', value: current.depth },
       { label: 'Total keys', value: format(current.totalKeys) },
-      { label: 'Unique keys', value: format(current.uniqueKeys) },
+      {
+        label: 'Unique keys',
+        value: current.keyStatsPartial
+          ? `${format(current.uniqueKeys)}+`
+          : format(current.uniqueKeys),
+      },
       { label: 'Empty values', value: format(current.emptyValues) },
       {
         label: 'Largest array',
         value: current.largestArray
-          ? `${current.largestArray.length} @ ${current.largestArray.path}`
+          ? `${format(current.largestArray.length)} @ ${nodePath(current.largestArray.node)}`
           : '—',
       },
       {
         label: 'Longest string',
         value: current.longestString
-          ? `${current.longestString.length} @ ${current.longestString.path}`
+          ? `${format(current.longestString.length)} @ ${nodePath(current.longestString.node)}`
           : '—',
       },
       {
         label: 'Number range',
         value: current.numberRange
-          ? `${current.numberRange.min} … ${current.numberRange.max}`
+          ? `${current.numberRange.min} … ${current.numberRange.max}${current.numberStatsPartial ? ' (sampled)' : ''}`
           : '—',
       },
-      { label: 'Minify saving', value: `${current.savedPercent.toFixed(1)}%` },
+      {
+        label: 'Minify saving',
+        value: current.bytes
+          ? `${(((current.bytes - current.minifiedBytes) / current.bytes) * 100).toFixed(1)}%`
+          : '—',
+      },
     ];
   });
 
-  watchEffect(async () => {
-    const text = store.text;
-    gzip.value = text.trim() ? await gzipSize(text) : null;
-  });
+  watch(
+    () => store.stats,
+    async (current) => {
+      gzip.value = null;
+      gzipSkipped.value = false;
+      if (!current) return;
+      if (current.bytes > GZIP_LIMIT) {
+        gzipSkipped.value = true;
+        return;
+      }
+      const text = store.source;
+      const size = await gzipSize(text);
+      if (text === store.source) gzip.value = size;
+    },
+    { immediate: true },
+  );
 </script>

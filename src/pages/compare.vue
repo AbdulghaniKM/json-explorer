@@ -28,13 +28,16 @@
         Only differences
       </label>
 
-      <div v-if="diff" class="ms-auto flex flex-wrap items-center gap-1.5">
-        <UiAppBadge v-if="diff.summary.identical" variant="success">Documents match</UiAppBadge>
-        <template v-else>
-          <UiAppBadge variant="success">+{{ diff.summary.added }} added</UiAppBadge>
-          <UiAppBadge variant="error">−{{ diff.summary.removed }} removed</UiAppBadge>
-          <UiAppBadge variant="warning">~{{ diff.summary.changed }} changed</UiAppBadge>
-          <UiAppBadge variant="muted">{{ diff.summary.unchanged }} unchanged</UiAppBadge>
+      <div class="ms-auto flex flex-wrap items-center gap-1.5">
+        <UiAppBadge v-if="comparing" variant="info">Comparing…</UiAppBadge>
+        <template v-else-if="summary">
+          <UiAppBadge v-if="summary.identical" variant="success">Documents match</UiAppBadge>
+          <template v-else>
+            <UiAppBadge variant="success">+{{ format(summary.added) }} added</UiAppBadge>
+            <UiAppBadge variant="error">−{{ format(summary.removed) }} removed</UiAppBadge>
+            <UiAppBadge variant="warning">~{{ format(summary.changed) }} changed</UiAppBadge>
+            <UiAppBadge variant="muted">{{ format(summary.unchanged) }} unchanged</UiAppBadge>
+          </template>
         </template>
       </div>
     </div>
@@ -46,6 +49,7 @@
         class="h-[32vh]"
         :error="store.error"
         :valid="store.isValid"
+        :lines="store.stats?.lines ?? null"
       >
         <template #actions>
           <UiAppButton
@@ -71,6 +75,7 @@
         class="h-[32vh]"
         :error="store.compareError"
         :valid="store.compareError === null && store.compare.trim().length > 0"
+        :lines="store.compareStats?.lines ?? null"
       >
         <template #actions>
           <UiAppButton
@@ -94,29 +99,26 @@
     <JsonPanel
       title="Differences"
       icon="icon-[solar--transfer-horizontal-linear]"
-      :badge="
-        diff
-          ? `${diff.summary.added + diff.summary.removed + diff.summary.changed} changes`
-          : undefined
-      "
+      :badge="changeBadge"
       class="min-h-[38vh]"
     >
-      <JsonDiffTree v-if="diff" :root="diff.root" :only-changes="onlyChanges" class="flex-1" />
+      <JsonDiffTree v-if="root" :root="root" :only-changes="onlyChanges" class="flex-1" />
 
       <UiAppEmptyState
         v-else
         class="flex-1"
-        icon="icon-[solar--danger-triangle-linear]"
-        variant="danger"
-        title="Both sides need valid JSON"
-        :description="blockingMessage"
+        :icon="comparing ? 'icon-[solar--bolt-linear]' : 'icon-[solar--danger-triangle-linear]'"
+        :variant="comparing ? 'info' : 'danger'"
+        :title="comparing ? 'Comparing in a worker…' : 'Cannot compare yet'"
+        :description="comparing ? 'Both documents are parsed off the main thread.' : message"
       />
     </JsonPanel>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { diffJson } from '@/lib/json';
+  import type { DiffNode, DiffSummary, EngineResponseOf } from '@/lib/json';
+  import { runOffThread } from '@/composables/useJsonEngine';
   import { useJsonFile } from '@/composables/useJsonFile';
   import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
   import { useToast } from '@/composables/useToast';
@@ -133,15 +135,54 @@
   const ignoreArrayOrder = ref(false);
   const onlyChanges = ref(false);
 
-  const diff = computed(() => {
-    if (!store.isValid || store.compareError !== null) return null;
-    return diffJson(store.value, store.compareValue, { ignoreArrayOrder: ignoreArrayOrder.value });
+  const root = shallowRef<DiffNode | null>(null);
+  const summary = shallowRef<DiffSummary | null>(null);
+  const message = ref('');
+  const comparing = ref(false);
+
+  const format = (value: number) => value.toLocaleString('en-US');
+
+  const changeBadge = computed(() => {
+    if (!summary.value) return undefined;
+    const total = summary.value.added + summary.value.removed + summary.value.changed;
+    return `${format(total)} changes`;
   });
 
-  const blockingMessage = computed(() => {
-    if (!store.isValid) return `A: ${store.error?.message ?? 'invalid JSON'}`;
-    return `B: ${store.compareError?.message ?? 'invalid JSON'}`;
-  });
+  let token = 0;
+
+  const compare = async () => {
+    const current = ++token;
+    const left = store.source;
+    const right = store.compare;
+
+    if (!left.trim() || !right.trim()) {
+      root.value = null;
+      summary.value = null;
+      message.value = 'Both sides need a JSON document.';
+      return;
+    }
+
+    comparing.value = true;
+    const response = await runOffThread<EngineResponseOf<'diff'>>({
+      kind: 'diff',
+      left,
+      right,
+      ignoreArrayOrder: ignoreArrayOrder.value,
+    });
+
+    if (current !== token) return;
+    comparing.value = false;
+
+    if (response.ok) {
+      root.value = response.root;
+      summary.value = response.summary;
+      message.value = '';
+    } else {
+      root.value = null;
+      summary.value = null;
+      message.value = response.message;
+    }
+  };
 
   const openInto = async (side: 'source' | 'compare') => {
     const loaded = await openFile();
@@ -150,4 +191,10 @@
     else store.setCompare(loaded.text);
     success(`Loaded ${loaded.name}`);
   };
+
+  watchDebounced([() => store.source, () => store.compare, ignoreArrayOrder], compare, {
+    debounce: 350,
+    maxWait: 2000,
+    immediate: true,
+  });
 </script>

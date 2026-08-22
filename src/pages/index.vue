@@ -13,6 +13,7 @@
         size="sm"
         icon="icon-[solar--magic-stick-3-linear]"
         label="Beautify"
+        :loading="store.busy === 'beautify'"
         @click="beautify"
       />
       <UiAppButton
@@ -20,6 +21,7 @@
         size="sm"
         icon="icon-[solar--minimize-square-3-linear]"
         label="Minify"
+        :loading="store.busy === 'minify'"
         @click="minify"
       />
       <UiAppButton
@@ -43,6 +45,26 @@
         label="Sample"
         @click="store.loadSample"
       />
+
+      <div class="flex items-center gap-1 rounded-lg border border-border bg-surface ps-2">
+        <UiAppIcon name="icon-[solar--bolt-linear]" :size="0.9" class="text-warning" />
+        <select
+          v-model.number="stressRecords"
+          class="h-8 bg-transparent text-xs text-text outline-none"
+        >
+          <option :value="20000">20k records · ~7 MB</option>
+          <option :value="100000">100k records · ~33 MB</option>
+          <option :value="200000">200k records · ~66 MB</option>
+        </select>
+        <UiAppButton
+          size="xs"
+          variant="ghost"
+          label="Generate"
+          :loading="store.busy === 'generate'"
+          @click="generate(stressRecords)"
+        />
+      </div>
+
       <UiAppButton
         variant="ghost"
         size="sm"
@@ -52,12 +74,16 @@
       />
 
       <div class="ms-auto flex flex-wrap items-center gap-1.5">
+        <UiAppBadge v-if="store.scanning" variant="info">Indexing…</UiAppBadge>
         <UiAppBadge :variant="store.isValid ? 'success' : store.isEmpty ? 'muted' : 'error'">
           {{ store.isEmpty ? 'Empty' : store.isValid ? 'Valid JSON' : 'Invalid JSON' }}
         </UiAppBadge>
-        <UiAppBadge v-if="stats" variant="surface">{{ stats.totalNodes }} nodes</UiAppBadge>
+        <UiAppBadge v-if="stats" variant="surface">
+          {{ compact(stats.totalNodes) }} nodes
+        </UiAppBadge>
         <UiAppBadge v-if="stats" variant="surface">depth {{ stats.depth }}</UiAppBadge>
         <UiAppBadge v-if="stats" variant="surface">{{ formatBytes(stats.bytes) }}</UiAppBadge>
+        <UiAppBadge v-if="stats" variant="muted">indexed in {{ stats.scanMs }} ms</UiAppBadge>
       </div>
     </div>
 
@@ -69,6 +95,7 @@
         class="h-[42vh] lg:h-[calc(100vh-13rem)]"
         :error="store.error"
         :valid="store.isValid"
+        :lines="stats?.lines ?? null"
         @file="onFileLoaded"
       >
         <template #actions>
@@ -95,6 +122,7 @@
       <JsonPanel
         title="Tree"
         icon="icon-[solar--folder-with-files-linear]"
+        :badge="rowLabel"
         class="h-[52vh] lg:h-[calc(100vh-13rem)]"
       >
         <template #actions>
@@ -113,7 +141,7 @@
             icon="icon-[solar--list-linear]"
             icon-only
             size="xs"
-            tooltip="Expand all"
+            tooltip="Expand all (capped for very large documents)"
             @click="tree.expandAll"
           />
           <UiAppButton
@@ -143,9 +171,9 @@
 
           <div v-if="tree.query.value.trim()" class="flex items-center gap-1">
             <span class="font-mono text-xs text-text-muted">
-              {{ tree.matches.value.length ? tree.activeIndex.value + 1 : 0 }}/{{
-                tree.matches.value.length
-              }}
+              {{ tree.matchCount.value ? tree.activeIndex.value + 1 : 0 }}/{{
+                compact(tree.matchCount.value)
+              }}{{ tree.matchesTruncated.value ? '+' : '' }}
             </span>
             <UiAppButton
               icon="icon-[solar--alt-arrow-up-linear]"
@@ -180,22 +208,37 @@
             <option :value="2">Depth 2</option>
             <option :value="3">Depth 3</option>
             <option :value="5">Depth 5</option>
-            <option :value="99">All</option>
           </select>
         </div>
 
-        <JsonTree v-if="store.isValid" :value="store.value" :api="tree" class="flex-1" />
+        <JsonVirtualTree
+          v-if="store.index && store.isValid"
+          :key="store.documentId"
+          :text="store.source"
+          :index="store.index"
+          :api="tree"
+        />
 
         <UiAppEmptyState
           v-else
           class="flex-1"
-          icon="icon-[solar--danger-triangle-linear]"
-          :variant="store.isEmpty ? 'neutral' : 'danger'"
-          :title="store.isEmpty ? 'Nothing to explore yet' : 'Invalid JSON'"
+          :icon="
+            store.scanning ? 'icon-[solar--bolt-linear]' : 'icon-[solar--danger-triangle-linear]'
+          "
+          :variant="store.isEmpty ? 'neutral' : store.scanning ? 'info' : 'danger'"
+          :title="
+            store.scanning
+              ? 'Indexing the document…'
+              : store.isEmpty
+                ? 'Nothing to explore yet'
+                : 'Invalid JSON'
+          "
           :description="
-            store.isEmpty
-              ? 'Paste JSON in the editor, drop a file, or load the sample document.'
-              : store.error?.message
+            store.scanning
+              ? 'Parsing runs in a worker, so the page stays responsive.'
+              : store.isEmpty
+                ? 'Paste JSON, drop a file, or generate a large document to stress test the viewer.'
+                : store.error?.message
           "
         >
           <UiAppButton
@@ -204,7 +247,12 @@
             label="Load sample"
             @click="store.loadSample"
           />
-          <UiAppButton v-else variant="primary" label="Try to fix it" @click="repair" />
+          <UiAppButton
+            v-else-if="!store.scanning"
+            variant="primary"
+            label="Try to fix it"
+            @click="repair"
+          />
         </UiAppEmptyState>
 
         <footer
@@ -226,7 +274,7 @@
 </template>
 
 <script setup lang="ts">
-  import { analyzeJson, formatBytes } from '@/lib/json';
+  import { formatBytes } from '@/lib/json';
   import { useJsonTree } from '@/composables/useJsonTree';
   import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
   import { useClipboard } from '@/composables/useClipboard';
@@ -237,17 +285,32 @@
     head: 'JSON Explorer — tree viewer',
   });
 
-  const { store, open, save, copyAll, beautify, minify, repair } = useJsonWorkspace();
+  const { store, open, save, copyAll, beautify, minify, repair, generate } = useJsonWorkspace();
   const { copy } = useClipboard();
   const { success } = useToast();
 
   const showEditor = ref(true);
   const depth = ref(2);
+  const stressRecords = ref(100000);
   const searchRef = ref<HTMLInputElement | null>(null);
 
-  const tree = useJsonTree(computed(() => store.value));
+  const tree = useJsonTree(
+    computed(() => store.source),
+    computed(() => store.index),
+    computed(() => store.documentId),
+  );
 
-  const stats = computed(() => (store.isValid ? analyzeJson(store.value, store.text) : null));
+  const stats = computed(() => store.stats);
+
+  const compact = (value: number) => {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 10_000) return `${Math.round(value / 1000)}k`;
+    return value.toLocaleString('en-US');
+  };
+
+  const rowLabel = computed(() =>
+    tree.rowCount.value ? `${compact(tree.rowCount.value)} rows` : undefined,
+  );
 
   const copyPath = () => copy(tree.selectedPath.value, true);
 

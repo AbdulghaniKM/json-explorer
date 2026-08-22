@@ -1,27 +1,38 @@
 <template>
   <div
-    class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface transition-shadow"
+    class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface"
     :class="dragging ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''"
+    @dragenter.prevent="dragging = true"
+    @dragover.prevent="dragging = true"
+    @dragleave.prevent="onDragLeave"
+    @drop.prevent="onDrop"
   >
     <header class="flex items-center gap-2 border-b border-border/70 px-3 py-2">
       <span class="text-xs font-semibold tracking-wider text-text-muted uppercase">
         {{ label }}
       </span>
       <span class="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px] text-text-muted">
-        {{ lineCount }} L · {{ formatCount(modelValue.length) }} ch
+        {{ lineLabel }} · {{ charLabel }}
+      </span>
+      <span
+        v-if="!editable"
+        class="rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning"
+      >
+        read-only
       </span>
       <div class="ms-auto flex items-center gap-1">
         <slot name="actions" />
       </div>
     </header>
 
-    <div
-      class="relative min-h-0 flex-1"
-      @dragenter.prevent="dragging = true"
-      @dragover.prevent="dragging = true"
-      @dragleave.prevent="onDragLeave"
-      @drop.prevent="onDrop"
-    >
+    <JsonLineViewer
+      v-if="!editable"
+      ref="viewerRef"
+      :text="modelValue"
+      :error-line="error?.line ?? 0"
+    />
+
+    <div v-else class="relative min-h-0 flex-1">
       <div class="flex h-full min-h-0">
         <div
           ref="gutterRef"
@@ -63,22 +74,30 @@
           />
         </div>
       </div>
+    </div>
 
+    <div
+      v-if="dragging"
+      class="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/80"
+    >
       <div
-        v-if="dragging"
-        class="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-[2px]"
+        class="flex items-center gap-2 rounded-xl border border-dashed border-primary px-4 py-3 text-sm font-medium text-primary"
       >
-        <div
-          class="flex items-center gap-2 rounded-xl border border-dashed border-primary px-4 py-3 text-sm font-medium text-primary"
-        >
-          <UiAppIcon name="icon-[solar--upload-minimalistic-linear]" />
-          Drop a JSON file to load it
-        </div>
+        <UiAppIcon name="icon-[solar--upload-minimalistic-linear]" />
+        Drop a JSON file to load it
       </div>
     </div>
 
     <footer
-      v-if="error && modelValue.trim()"
+      v-if="!editable"
+      class="flex items-center gap-2 border-t border-border/70 bg-warning/5 px-3 py-2 text-xs text-warning"
+    >
+      <UiAppIcon name="icon-[solar--bolt-linear]" class="shrink-0" />
+      Large document — rendered in a virtual viewer. Editing is off; every tool still works.
+    </footer>
+
+    <footer
+      v-else-if="error && modelValue.trim()"
       class="flex items-center gap-2 border-t border-border/70 bg-error/5 px-3 py-2 text-xs text-error"
     >
       <UiAppIcon name="icon-[solar--danger-triangle-linear]" class="shrink-0" />
@@ -105,8 +124,10 @@
 </template>
 
 <script setup lang="ts">
-  import { HIGHLIGHT_LIMIT, highlightJson, type JsonParseError } from '@/lib/json';
+  import { HIGHLIGHT_LIMIT, countLines, highlightJson, type JsonParseError } from '@/lib/json';
+  import { EDIT_LIMIT } from '@/stores/json.store';
   import { useJsonFile } from '@/composables/useJsonFile';
+  import JsonLineViewer from './LineViewer.vue';
 
   const props = withDefaults(
     defineProps<{
@@ -116,6 +137,7 @@
       error?: JsonParseError | null;
       valid?: boolean;
       readonly?: boolean;
+      lines?: number | null;
     }>(),
     {
       label: 'JSON',
@@ -123,6 +145,7 @@
       error: null,
       valid: false,
       readonly: false,
+      lines: null,
     },
   );
 
@@ -136,19 +159,37 @@
   const textareaRef = ref<HTMLTextAreaElement | null>(null);
   const highlightRef = ref<HTMLPreElement | null>(null);
   const gutterRef = ref<HTMLDivElement | null>(null);
+  const viewerRef = ref<InstanceType<typeof JsonLineViewer> | null>(null);
   const dragging = ref(false);
 
-  const lineCount = computed(() => (props.modelValue ? props.modelValue.split('\n').length : 1));
+  const editable = computed(() => props.modelValue.length <= EDIT_LIMIT);
+
+  const lineCount = computed(() => {
+    if (props.lines !== null) return props.lines;
+    if (!editable.value) return 0;
+    return countLines(props.modelValue);
+  });
+
   const gutterLines = computed(() => {
     const total = Math.min(lineCount.value, 5000);
-    return Array.from({ length: total }, (_, index) => index + 1);
+    return Array.from({ length: Math.max(total, 1) }, (_, position) => position + 1);
   });
+
   const gutterWidth = computed(() => `${Math.max(3, String(lineCount.value).length + 1.5)}ch`);
 
-  const useHighlight = computed(() => props.modelValue.length <= HIGHLIGHT_LIMIT);
-  const highlighted = computed(() => `${highlightJson(props.modelValue)}\n`);
+  const useHighlight = computed(() => editable.value && props.modelValue.length <= HIGHLIGHT_LIMIT);
+  const highlighted = computed(() =>
+    useHighlight.value ? `${highlightJson(props.modelValue)}\n` : '',
+  );
 
-  const formatCount = (count: number) => count.toLocaleString('en-US');
+  const compact = (value: number) => {
+    if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+    if (value >= 10_000) return `${Math.round(value / 1000)}k`;
+    return value.toLocaleString('en-US');
+  };
+
+  const lineLabel = computed(() => `${compact(lineCount.value)} L`);
+  const charLabel = computed(() => `${compact(props.modelValue.length)} ch`);
 
   const onInput = (event: Event) => {
     emit('update:modelValue', (event.target as HTMLTextAreaElement).value);
@@ -169,8 +210,7 @@
     event.preventDefault();
     const target = event.target as HTMLTextAreaElement;
     const { selectionStart, selectionEnd, value } = target;
-    const next = `${value.slice(0, selectionStart)}  ${value.slice(selectionEnd)}`;
-    emit('update:modelValue', next);
+    emit('update:modelValue', `${value.slice(0, selectionStart)}  ${value.slice(selectionEnd)}`);
     nextTick(() => {
       target.selectionStart = selectionStart + 2;
       target.selectionEnd = selectionStart + 2;
@@ -189,22 +229,26 @@
     emit('file', loaded.name);
   };
 
-  const focusPosition = (line: number, column: number) => {
-    const target = textareaRef.value;
-    if (!target) return;
-    const lines = props.modelValue.split('\n');
-    let index = 0;
-    for (let i = 0; i < Math.min(line - 1, lines.length); i++) index += lines[i].length + 1;
-    index += Math.max(0, column - 1);
-    target.focus();
-    target.setSelectionRange(index, index);
-    const lineHeight = 20.8;
-    target.scrollTop = Math.max(0, (line - 4) * lineHeight);
-    syncScroll();
-  };
-
   const jumpToError = () => {
-    if (props.error) focusPosition(props.error.line, props.error.column);
+    const target = textareaRef.value;
+    const position = props.error;
+    if (!position) return;
+
+    if (!editable.value) {
+      viewerRef.value?.scrollToLine(position.line);
+      return;
+    }
+    if (!target) return;
+
+    const lines = props.modelValue.split('\n', position.line);
+    let offset = 0;
+    for (let i = 0; i < position.line - 1 && i < lines.length; i++) offset += lines[i].length + 1;
+    offset += Math.max(0, position.column - 1);
+
+    target.focus();
+    target.setSelectionRange(offset, offset);
+    target.scrollTop = Math.max(0, (position.line - 4) * 20.8);
+    syncScroll();
   };
 
   const focus = () => textareaRef.value?.focus();
@@ -214,5 +258,5 @@
     () => nextTick(syncScroll),
   );
 
-  defineExpose({ focus, focusPosition });
+  defineExpose({ focus });
 </script>

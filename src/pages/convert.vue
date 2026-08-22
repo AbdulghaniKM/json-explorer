@@ -44,12 +44,14 @@
       </label>
 
       <div class="ms-auto flex items-center gap-1">
+        <UiAppBadge v-if="converting" variant="info">Converting…</UiAppBadge>
+        <UiAppBadge v-else-if="size" variant="surface">{{ formatBytes(size) }}</UiAppBadge>
         <UiAppButton
           variant="surface"
           size="sm"
           icon="icon-[solar--copy-linear]"
           label="Copy"
-          :disabled="!output"
+          :disabled="!full || size > CLIPBOARD_LIMIT"
           @click="copyOutput"
         />
         <UiAppButton
@@ -57,7 +59,7 @@
           size="sm"
           icon="icon-[solar--download-minimalistic-linear]"
           label="Download"
-          :disabled="!output"
+          :disabled="!preview"
           @click="downloadOutput"
         />
       </div>
@@ -70,6 +72,7 @@
         class="h-[40vh] lg:h-[calc(100vh-13rem)]"
         :error="store.error"
         :valid="store.isValid"
+        :lines="store.stats?.lines ?? null"
       >
         <template #actions>
           <UiAppButton
@@ -92,10 +95,10 @@
       <JsonPanel
         :title="currentTarget.label"
         :icon="currentTarget.icon"
-        :badge="output ? `${output.split('\n').length} lines` : undefined"
+        :badge="truncated ? 'preview truncated' : undefined"
         class="h-[40vh] lg:h-[calc(100vh-13rem)]"
       >
-        <JsonOutput :text="output" :placeholder="placeholder" />
+        <JsonOutput :text="preview" :placeholder="placeholder" />
       </JsonPanel>
     </div>
 
@@ -104,24 +107,18 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    jsonToCsv,
-    jsonToQueryString,
-    jsonToTypeScript,
-    jsonToYaml,
-    jsonToZod,
-  } from '@/lib/json';
-  import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
+  import { formatBytes, type ConvertTarget, type EngineResponseOf } from '@/lib/json';
+  import { runOffThread } from '@/composables/useJsonEngine';
+  import { CLIPBOARD_LIMIT, useJsonWorkspace } from '@/composables/useJsonWorkspace';
+  import { useToast } from '@/composables/useToast';
 
   definePage({
     route: '/convert',
     head: 'Convert JSON — TypeScript, Zod, YAML, CSV',
   });
 
-  type TargetId = 'typescript' | 'zod' | 'yaml' | 'csv' | 'query';
-
   const TARGETS: Array<{
-    id: TargetId;
+    id: ConvertTarget;
     label: string;
     icon: string;
     extension: string;
@@ -171,35 +168,84 @@
   ];
 
   const { store, open, copy, download } = useJsonWorkspace();
+  const { error: toastError } = useToast();
 
-  const active = ref<TargetId>('typescript');
+  const active = ref<ConvertTarget>('typescript');
   const rootName = ref('Root');
   const delimiter = ref(',');
+
+  const preview = ref('');
+  const full = ref('');
+  const truncated = ref(false);
+  const size = ref(0);
+  const converting = ref(false);
+  const failure = ref('');
 
   const currentTarget = computed(
     () => TARGETS.find((target) => target.id === active.value) ?? TARGETS[0],
   );
 
-  const output = computed(() => {
-    if (!store.isValid) return '';
-    const value = store.value;
-    try {
-      if (active.value === 'typescript') return jsonToTypeScript(value, rootName.value || 'Root');
-      if (active.value === 'zod') return jsonToZod(value, rootName.value || 'root');
-      if (active.value === 'yaml') return jsonToYaml(value);
-      if (active.value === 'csv') return jsonToCsv(value, delimiter.value);
-      return jsonToQueryString(value);
-    } catch {
-      return '';
-    }
+  const placeholder = computed(() => {
+    if (failure.value) return failure.value;
+    if (store.isEmpty) return 'Paste JSON on the left to convert it.';
+    return 'Fix the JSON to see the conversion.';
   });
 
-  const placeholder = computed(() =>
-    store.isEmpty ? 'Paste JSON on the left to convert it.' : 'Fix the JSON to see the conversion.',
-  );
+  let token = 0;
 
-  const copyOutput = () => copy(output.value, true);
+  const convert = async () => {
+    const current = ++token;
+    if (!store.isValid) {
+      preview.value = '';
+      full.value = '';
+      size.value = 0;
+      failure.value = '';
+      return;
+    }
 
-  const downloadOutput = () =>
-    download(output.value, `data.${currentTarget.value.extension}`, currentTarget.value.mime);
+    converting.value = true;
+    const response = await runOffThread<EngineResponseOf<'convert'>>({
+      kind: 'convert',
+      text: store.source,
+      target: active.value,
+      rootName: rootName.value,
+      delimiter: delimiter.value,
+    });
+
+    if (current !== token) return;
+    converting.value = false;
+
+    if (response.ok) {
+      preview.value = response.preview;
+      full.value = response.text;
+      truncated.value = response.truncated;
+      size.value = response.size;
+      failure.value = '';
+    } else {
+      preview.value = '';
+      full.value = '';
+      truncated.value = false;
+      size.value = 0;
+      failure.value = response.message;
+    }
+  };
+
+  const copyOutput = () => {
+    if (!full.value || size.value > CLIPBOARD_LIMIT) {
+      toastError('This output is too large for the clipboard — download it instead');
+      return;
+    }
+    copy(full.value, true);
+  };
+
+  const downloadOutput = () => {
+    if (!full.value) return;
+    download(full.value, `data.${currentTarget.value.extension}`, currentTarget.value.mime);
+  };
+
+  watchDebounced([() => store.source, () => store.isValid, active, rootName, delimiter], convert, {
+    debounce: 300,
+    maxWait: 2000,
+    immediate: true,
+  });
 </script>

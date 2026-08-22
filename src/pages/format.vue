@@ -6,28 +6,32 @@
         size="sm"
         icon="icon-[solar--magic-stick-3-linear]"
         label="Beautify"
-        @click="beautify"
+        :loading="store.busy === 'beautify'"
+        @click="run('beautify')"
       />
       <UiAppButton
         variant="surface"
         size="sm"
         icon="icon-[solar--minimize-square-3-linear]"
         label="Minify"
-        @click="minify"
+        :loading="store.busy === 'minify'"
+        @click="run('minify')"
       />
       <UiAppButton
         variant="surface"
         size="sm"
         icon="icon-[solar--sort-from-top-to-bottom-linear]"
         label="Sort A→Z"
-        @click="sort('asc')"
+        :loading="store.busy === 'sortAsc'"
+        @click="run('sortAsc')"
       />
       <UiAppButton
         variant="surface"
         size="sm"
         icon="icon-[solar--sort-from-bottom-to-top-linear]"
         label="Sort Z→A"
-        @click="sort('desc')"
+        :loading="store.busy === 'sortDesc'"
+        @click="run('sortDesc')"
       />
       <UiAppButton
         variant="surface"
@@ -35,7 +39,8 @@
         icon="icon-[solar--broom-linear]"
         label="Repair"
         tooltip="Fix comments, single quotes, trailing commas, unquoted keys"
-        @click="repair"
+        :loading="store.busy === 'repair'"
+        @click="run('repair')"
       />
       <UiAppButton
         variant="surface"
@@ -43,7 +48,8 @@
         icon="icon-[solar--scissors-linear]"
         label="Drop empties"
         tooltip="Remove null, empty strings, arrays and objects"
-        @click="dropEmpty"
+        :loading="store.busy === 'removeEmpty'"
+        @click="run('removeEmpty')"
       />
       <UiAppButton
         variant="ghost"
@@ -51,7 +57,7 @@
         icon="icon-[solar--quit-full-screen-linear]"
         label="Escape"
         tooltip="Turn the document into a JSON string literal"
-        @click="escape"
+        @click="run('escape')"
       />
       <UiAppButton
         variant="ghost"
@@ -59,7 +65,7 @@
         icon="icon-[solar--full-screen-linear]"
         label="Unescape"
         tooltip="Turn a JSON string literal back into JSON"
-        @click="unescape"
+        @click="run('unescape')"
       />
 
       <div class="ms-auto flex items-center gap-2">
@@ -92,6 +98,7 @@
         class="h-[60vh] lg:h-[calc(100vh-13rem)]"
         :error="store.error"
         :valid="store.isValid"
+        :lines="store.stats?.lines ?? null"
         @file="onFileLoaded"
       >
         <template #actions>
@@ -135,7 +142,7 @@
           <button
             type="button"
             class="ms-auto font-medium text-primary hover:underline"
-            @click="repair"
+            @click="run('repair')"
           >
             Try to fix it
           </button>
@@ -156,6 +163,16 @@
           </dl>
         </JsonPanel>
 
+        <JsonPanel title="Large documents" icon="icon-[solar--bolt-linear]">
+          <div class="space-y-2 p-3 text-sm text-text-muted">
+            <p>
+              Beautify, minify and sort stream straight from the source text using the index, so
+              they never build an in-memory copy of the document. They run in a worker.
+            </p>
+            <p>Repair, drop-empties and escape need the whole document in memory and are capped.</p>
+          </div>
+        </JsonPanel>
+
         <JsonPanel title="Messy input?" icon="icon-[solar--broom-linear]">
           <div class="space-y-3 p-3 text-sm text-text-muted">
             <p>
@@ -169,7 +186,7 @@
               icon="icon-[solar--document-add-linear]"
               label="Load a messy example"
               full-width
-              @click="loadMessy"
+              @click="store.loadMessy"
             />
           </div>
         </JsonPanel>
@@ -179,7 +196,7 @@
 </template>
 
 <script setup lang="ts">
-  import { SAMPLE_MESSY, byteLength, formatBytes, minifyJson } from '@/lib/json';
+  import { formatBytes } from '@/lib/json';
   import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
   import { useToast } from '@/composables/useToast';
 
@@ -188,46 +205,30 @@
     head: 'Format JSON — beautify, minify, sort, repair',
   });
 
-  const { store, open, save, copyAll, beautify, minify, repair } = useJsonWorkspace();
-  const { success, error: toastError } = useToast();
-
-  const sort = (direction: 'asc' | 'desc') => {
-    if (!store.sortKeys(direction))
-      toastError('Fix the syntax error first', { title: 'Invalid JSON' });
-  };
-
-  const dropEmpty = () => {
-    if (!store.removeEmpty()) toastError('Fix the syntax error first', { title: 'Invalid JSON' });
-  };
-
-  const escape = () => {
-    store.escapeString();
-    success('Escaped as a JSON string');
-  };
-
-  const unescape = () => {
-    if (store.unescapeString()) success('Unescaped');
-    else toastError('This does not look like an escaped JSON string');
-  };
-
-  const loadMessy = () => {
-    store.replaceSource(SAMPLE_MESSY);
-  };
+  const { store, open, save, copyAll, run } = useJsonWorkspace();
+  const { success } = useToast();
 
   const onFileLoaded = (name: string) => success(`Loaded ${name}`);
 
   const summary = computed(() => {
-    const raw = store.text;
-    const minified = store.isValid ? minifyJson(store.value) : '';
+    const stats = store.stats;
+    if (!stats) {
+      return [
+        { label: 'Characters', value: store.source.length.toLocaleString('en-US') },
+        { label: 'Status', value: store.isEmpty ? 'empty' : 'invalid' },
+      ];
+    }
     return [
-      { label: 'Characters', value: raw.length.toLocaleString('en-US') },
-      { label: 'Lines', value: (raw ? raw.split('\n').length : 0).toLocaleString('en-US') },
-      { label: 'Size', value: formatBytes(byteLength(raw)) },
-      { label: 'Minified', value: minified ? formatBytes(byteLength(minified)) : '—' },
+      { label: 'Characters', value: stats.characters.toLocaleString('en-US') },
+      { label: 'Lines', value: stats.lines.toLocaleString('en-US') },
+      { label: 'Nodes', value: stats.totalNodes.toLocaleString('en-US') },
+      { label: 'Size', value: formatBytes(stats.bytes) },
+      { label: 'Minified', value: formatBytes(stats.minifiedBytes) },
       {
         label: 'Saved',
-        value: minified ? formatBytes(Math.max(0, byteLength(raw) - byteLength(minified))) : '—',
+        value: formatBytes(Math.max(0, stats.bytes - stats.minifiedBytes)),
       },
+      { label: 'Indexed in', value: `${stats.scanMs} ms` },
     ];
   });
 </script>

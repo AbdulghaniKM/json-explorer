@@ -6,6 +6,9 @@
 // biome-ignore lint: disable
 export {}
 declare global {
+  const CLIPBOARD_LIMIT: typeof import('./composables/useJsonWorkspace').CLIPBOARD_LIMIT
+  const EDIT_LIMIT: typeof import('./stores/json.store').EDIT_LIMIT
+  const EXPAND_ALL_LIMIT: typeof import('./composables/useJsonTree').EXPAND_ALL_LIMIT
   const EffectScope: typeof import('vue').EffectScope
   const JSON_TREE_KEY: typeof import('./composables/useJsonTree').JSON_TREE_KEY
   const TOOLS: typeof import('./config/tools').TOOLS
@@ -110,6 +113,7 @@ declare global {
   const refWithControl: typeof import('@vueuse/core').refWithControl
   const resolveComponent: typeof import('vue').resolveComponent
   const routes: typeof import('./config/router').routes
+  const runOffThread: typeof import('./composables/useJsonEngine').runOffThread
   const setActivePinia: typeof import('pinia').setActivePinia
   const setMapStoreSuffix: typeof import('pinia').setMapStoreSuffix
   const shallowReactive: typeof import('vue').shallowReactive
@@ -214,6 +218,7 @@ declare global {
   const useIntersectionObserver: typeof import('@vueuse/core').useIntersectionObserver
   const useInterval: typeof import('@vueuse/core').useInterval
   const useIntervalFn: typeof import('@vueuse/core').useIntervalFn
+  const useJsonEngine: typeof import('./composables/useJsonEngine').useJsonEngine
   const useJsonFile: typeof import('./composables/useJsonFile').useJsonFile
   const useJsonStore: typeof import('./stores/json.store').useJsonStore
   const useJsonTree: typeof import('./composables/useJsonTree').useJsonTree
@@ -366,6 +371,9 @@ import { UnwrapRef } from 'vue'
 declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
+    readonly CLIPBOARD_LIMIT: UnwrapRef<typeof import('./composables/useJsonWorkspace')['CLIPBOARD_LIMIT']>
+    readonly EDIT_LIMIT: UnwrapRef<typeof import('./stores/json.store')['EDIT_LIMIT']>
+    readonly EXPAND_ALL_LIMIT: UnwrapRef<typeof import('./composables/useJsonTree')['EXPAND_ALL_LIMIT']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly JSON_TREE_KEY: UnwrapRef<typeof import('./composables/useJsonTree')['JSON_TREE_KEY']>
     readonly TOOLS: UnwrapRef<typeof import('./config/tools')['TOOLS']>
@@ -429,7 +437,6 @@ declare module 'vue' {
     readonly mapWritableState: UnwrapRef<typeof import('pinia')['mapWritableState']>
     readonly markRaw: UnwrapRef<typeof import('vue')['markRaw']>
     readonly nextTick: UnwrapRef<typeof import('vue')['nextTick']>
-    readonly nodeId: UnwrapRef<typeof import('./composables/useJsonTree')['nodeId']>
     readonly onActivated: UnwrapRef<typeof import('vue')['onActivated']>
     readonly onBeforeMount: UnwrapRef<typeof import('vue')['onBeforeMount']>
     readonly onBeforeRouteLeave: UnwrapRef<typeof import('vue-router')['onBeforeRouteLeave']>
@@ -470,6 +477,7 @@ declare module 'vue' {
     readonly refWithControl: UnwrapRef<typeof import('@vueuse/core')['refWithControl']>
     readonly resolveComponent: UnwrapRef<typeof import('vue')['resolveComponent']>
     readonly routes: UnwrapRef<typeof import('./config/router')['routes']>
+    readonly runOffThread: UnwrapRef<typeof import('./composables/useJsonEngine')['runOffThread']>
     readonly setActivePinia: UnwrapRef<typeof import('pinia')['setActivePinia']>
     readonly setMapStoreSuffix: UnwrapRef<typeof import('pinia')['setMapStoreSuffix']>
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
@@ -574,6 +582,7 @@ declare module 'vue' {
     readonly useIntersectionObserver: UnwrapRef<typeof import('@vueuse/core')['useIntersectionObserver']>
     readonly useInterval: UnwrapRef<typeof import('@vueuse/core')['useInterval']>
     readonly useIntervalFn: UnwrapRef<typeof import('@vueuse/core')['useIntervalFn']>
+    readonly useJsonEngine: UnwrapRef<typeof import('./composables/useJsonEngine')['useJsonEngine']>
     readonly useJsonFile: UnwrapRef<typeof import('./composables/useJsonFile')['useJsonFile']>
     readonly useJsonStore: UnwrapRef<typeof import('./stores/json.store')['useJsonStore']>
     readonly useJsonTree: UnwrapRef<typeof import('./composables/useJsonTree')['useJsonTree']>

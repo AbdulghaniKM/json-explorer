@@ -1,25 +1,6 @@
-import type { IndentStyle, JsonValue } from './types';
-
-export const indentOf = (style: IndentStyle): string | number =>
-  style === 'tab' ? '\t' : Number(style);
-
-export const formatJson = (value: JsonValue, style: IndentStyle = '2'): string =>
-  JSON.stringify(value, null, indentOf(style));
+import type { JsonValue } from './types';
 
 export const minifyJson = (value: JsonValue): string => JSON.stringify(value);
-
-export const sortJsonKeys = (value: JsonValue, direction: 'asc' | 'desc' = 'asc'): JsonValue => {
-  if (Array.isArray(value)) return value.map((item) => sortJsonKeys(item, direction));
-  if (value === null || typeof value !== 'object') return value;
-
-  const entries = Object.entries(value as Record<string, JsonValue>).sort(([a], [b]) =>
-    direction === 'asc' ? a.localeCompare(b) : b.localeCompare(a),
-  );
-
-  const sorted: Record<string, JsonValue> = {};
-  for (const [key, item] of entries) sorted[key] = sortJsonKeys(item, direction);
-  return sorted;
-};
 
 const isEmpty = (value: JsonValue): boolean => {
   if (value === null) return true;
@@ -60,5 +41,6 @@ export const byteLength = (text: string): number => new TextEncoder().encode(tex
 export const formatBytes = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 };

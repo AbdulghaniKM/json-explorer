@@ -71,9 +71,3 @@ export const parseJson = (text: string): JsonParseResult => {
     return { ok: false, error: toParseError(error, text) };
   }
 };
-
-export const errorContext = (text: string, error: JsonParseError): string => {
-  const line = text.split('\n')[error.line - 1] ?? '';
-  const start = Math.max(0, error.column - 40);
-  return line.slice(start, start + 80);
-};
