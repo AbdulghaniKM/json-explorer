@@ -17,7 +17,7 @@
           :initial="motionConfig.initial"
           :animate="motionConfig.animate"
           :exit="motionConfig.exit"
-          :transition="{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }"
+          :transition="{ duration: 0.12, ease: 'linear' }"
           @mouseenter="emit('pause', toast.id)"
           @mouseleave="emit('resume', toast.id)"
           @focusin="emit('pause', toast.id)"

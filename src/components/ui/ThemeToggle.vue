@@ -3,7 +3,7 @@
     type="button"
     :aria-label="`Switch to ${nextMode} theme`"
     :title="`Theme: ${mode}`"
-    class="inline-flex size-10 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:outline-none"
+    class="inline-flex size-(--control-h) items-center justify-center border border-transparent text-muted-foreground transition-none hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring"
     @click="cycle"
   >
     <UiAppIcon :name="iconName" :size="1.125" />

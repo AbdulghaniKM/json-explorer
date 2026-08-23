@@ -1,20 +1,25 @@
 <template>
   <div
     class="flex min-h-0 flex-col overflow-hidden border border-border bg-card"
-    :class="dragging ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''"
+    :class="dragging ? 'border-primary' : ''"
     @dragenter.prevent="dragging = true"
     @dragover.prevent="dragging = true"
     @dragleave.prevent="onDragLeave"
     @drop.prevent="onDrop"
   >
-    <header class="flex items-center gap-2 border-b border-border/70 px-3 py-2">
-      <span class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+    <header class="flex items-center gap-2 border-b border-border bg-muted/40 px-2.5 py-1.5">
+      <span
+        class="font-mono text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase"
+      >
         {{ label }}
       </span>
-      <span class="bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+      <span class="border border-border px-1.5 font-mono text-[11px] text-muted-foreground">
         {{ lineLabel }} · {{ charLabel }}
       </span>
-      <span v-if="!editable" class="bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning">
+      <span
+        v-if="!editable"
+        class="border border-warning/50 px-1.5 font-mono text-[11px] tracking-[0.06em] text-warning uppercase"
+      >
         read-only
       </span>
       <div class="ms-auto flex items-center gap-1">
@@ -33,7 +38,7 @@
       <div class="flex h-full min-h-0">
         <div
           ref="gutterRef"
-          class="hidden shrink-0 overflow-hidden border-e border-border/60 bg-muted/40 py-3 text-end font-mono text-(length:--code-size) leading-(--code-line) text-muted-foreground/70 select-none sm:block"
+          class="hidden shrink-0 overflow-hidden border-e border-border bg-muted/30 py-3 text-end font-mono text-(length:--code-size) leading-(--code-line) text-muted-foreground/60 select-none sm:block"
           :style="{ width: gutterWidth }"
         >
           <div
@@ -78,7 +83,7 @@
       class="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/80"
     >
       <div
-        class="flex items-center gap-2 border border-dashed border-primary px-4 py-3 text-sm font-medium text-primary"
+        class="flex items-center gap-2 border border-dashed border-primary bg-card px-4 py-3 font-mono text-sm text-primary"
       >
         <UiAppIcon name="icon-[solar--upload-minimalistic-linear]" />
         Drop a JSON file to load it
@@ -87,23 +92,23 @@
 
     <footer
       v-if="!editable"
-      class="flex items-center gap-2 border-t border-border/70 bg-warning/5 px-3 py-2 text-xs text-warning"
+      class="flex items-center gap-2 border-t border-border bg-card px-2.5 py-1 font-mono text-[11px] text-warning"
     >
-      <UiAppIcon name="icon-[solar--bolt-linear]" class="shrink-0" />
-      Large document — rendered in a virtual viewer. Editing is off; every tool still works.
+      <span aria-hidden="true">▲</span>
+      <span class="truncate">virtual viewer — editing off, every tool still works</span>
     </footer>
 
     <footer
       v-else-if="error && modelValue.trim()"
-      class="flex items-center gap-2 border-t border-border/70 bg-error/5 px-3 py-2 text-xs text-error"
+      class="flex items-center gap-2 border-t border-border bg-card px-2.5 py-1 font-mono text-[11px] text-error"
     >
-      <UiAppIcon name="icon-[solar--danger-triangle-linear]" class="shrink-0" />
+      <span aria-hidden="true">✕</span>
       <button
         type="button"
-        class="font-mono underline-offset-2 hover:underline"
+        class="shrink-0 underline-offset-2 hover:underline"
         @click="jumpToError"
       >
-        line {{ error.line }}:{{ error.column }}
+        {{ error.line }}:{{ error.column }}
       </button>
       <span class="truncate text-muted-foreground">{{ error.message }}</span>
       <slot name="error-action" />
@@ -111,10 +116,10 @@
 
     <footer
       v-else-if="valid && modelValue.trim()"
-      class="flex items-center gap-2 border-t border-border/70 bg-success/5 px-3 py-2 text-xs text-success"
+      class="flex items-center gap-2 border-t border-border bg-card px-2.5 py-1 font-mono text-[11px] text-success"
     >
-      <UiAppIcon name="icon-[solar--check-circle-linear]" class="shrink-0" />
-      Valid JSON
+      <span aria-hidden="true">●</span>
+      <span>valid</span>
       <slot name="valid-action" />
     </footer>
   </div>

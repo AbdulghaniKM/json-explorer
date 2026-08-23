@@ -152,13 +152,13 @@
 
       <div class="flex flex-col gap-3">
         <JsonPanel title="Document" icon="icon-[solar--file-text-linear]">
-          <dl class="divide-y divide-border/60 text-sm">
+          <dl class="divide-y divide-border/60 font-mono text-xs">
             <div
               v-for="row in summary"
               :key="row.label"
-              class="flex items-center justify-between gap-3 px-3 py-2"
+              class="flex items-center justify-between gap-3 px-2.5 py-1.5 hover:bg-accent"
             >
-              <dt class="text-muted-foreground">{{ row.label }}</dt>
+              <dt class="shrink-0 text-muted-foreground">{{ row.label }}</dt>
               <dd class="font-mono text-foreground tabular-nums">{{ row.value }}</dd>
             </div>
           </dl>

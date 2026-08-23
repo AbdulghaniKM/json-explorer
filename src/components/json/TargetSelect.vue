@@ -5,7 +5,7 @@
       role="combobox"
       aria-haspopup="listbox"
       :aria-expanded="open"
-      class="flex h-9 w-56 items-center gap-2 border border-border bg-card px-2.5 text-start text-sm transition-colors hover:border-primary/50 focus-visible:border-primary focus-visible:outline-none"
+      class="flex h-9 w-56 items-center gap-2 border border-border bg-card px-2.5 text-start text-sm transition-none hover:border-primary/50 focus-visible:border-primary focus-visible:outline-none"
       @click="toggle"
       @keydown="onTriggerKeydown"
     >
@@ -41,7 +41,7 @@
           type="button"
           role="option"
           :aria-selected="option.id === modelValue"
-          class="flex w-full items-start gap-2.5 px-3 py-2 text-start transition-colors focus-visible:outline-none"
+          class="flex w-full items-start gap-2.5 px-3 py-2 text-start transition-none focus-visible:outline-none"
           :class="
             option.id === highlighted
               ? 'bg-primary/10'
