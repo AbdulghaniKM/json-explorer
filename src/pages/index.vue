@@ -17,11 +17,14 @@
           </p>
 
           <h1
-            class="mt-4 text-3xl leading-[1.1] font-bold tracking-tight text-foreground sm:text-5xl"
+            class="mt-4 flex flex-col gap-1 text-3xl leading-[1.1] font-bold tracking-tight text-foreground sm:text-5xl"
           >
-            Read 191&nbsp;MB of JSON
-            <br />
-            <span class="text-primary">without leaving the tab.</span>
+            <LandingMatrixText text="Read 191 MB of JSON" />
+            <LandingMatrixText
+              text="without leaving the tab."
+              class="text-primary"
+              :initial-delay="900"
+            />
           </h1>
 
           <p class="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
