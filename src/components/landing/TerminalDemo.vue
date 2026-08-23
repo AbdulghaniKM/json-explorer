@@ -1,56 +1,79 @@
 <template>
   <div class="flex min-h-0 flex-col overflow-hidden border border-border bg-card">
     <header class="flex items-center gap-2 border-b border-border bg-muted/40 px-2.5 py-1.5">
-      <span class="flex gap-1" aria-hidden="true">
-        <span class="size-2 bg-error/70" />
-        <span class="size-2 bg-warning/70" />
-        <span class="size-2 bg-success/70" />
-      </span>
       <span
-        class="font-mono text-[11px] font-semibold tracking-[0.1em] text-muted-foreground uppercase"
+        class="font-mono text-[11px] font-semibold tracking-widest text-muted-foreground uppercase"
       >
-        {{ title }}
+        {{ label }}
       </span>
       <span class="ms-auto border border-border px-1.5 font-mono text-[11px] text-muted-foreground">
-        {{ lineCount }} L
+        {{ lines.length }} L
       </span>
     </header>
 
     <div class="min-h-0 flex-1 overflow-hidden p-3">
       <pre
         class="font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre"
-      ><code v-html="rendered"></code><span
-        v-if="!done"
+      ><span class="text-primary select-none">$ </span><span v-text="typedCommand" /><span
+        v-if="phase === 'command'"
         class="caret ms-px inline-block h-[0.95em] w-[0.5em] translate-y-[0.15em] bg-primary"
         aria-hidden="true"
-      /></pre>
+      /><template v-if="phase !== 'command'">
+<code v-html="body"></code><span
+        v-if="phase === 'output'"
+        class="caret ms-px inline-block h-[0.95em] w-[0.5em] translate-y-[0.15em] bg-primary"
+        aria-hidden="true"
+      /></template></pre>
     </div>
+
+    <footer
+      class="flex items-center gap-2 border-t border-border bg-card px-2.5 py-1 font-mono text-[11px]"
+      :class="phase === 'done' ? 'text-success' : 'text-muted-foreground'"
+    >
+      <span aria-hidden="true">{{ phase === 'done' ? '●' : '◐' }}</span>
+      <span>
+        {{ phase === 'done' ? `valid · ${lines.length} lines · ${bytes} B` : 'parsing…' }}
+      </span>
+    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
   import { highlightJson } from '@/lib/json/highlight';
 
-  const props = withDefaults(defineProps<{ source: string; title?: string; speed?: number }>(), {
-    title: 'response.json',
-    speed: 9,
-  });
+  const props = withDefaults(
+    defineProps<{
+      command: string;
+      source: string;
+      label?: string;
+      /** Characters revealed per tick. The command types slower, one key at a time. */
+      speed?: number;
+    }>(),
+    { label: 'session', speed: 7 },
+  );
 
-  const typed = ref(0);
-  const done = ref(false);
+  type Phase = 'command' | 'output' | 'done';
 
-  // Highlighting a partial document would leave an unterminated string on most frames, so the
-  // slice is escaped plainly until the last character lands and the real highlighter takes over.
+  const phase = ref<Phase>('command');
+  const commandShown = ref(0);
+  const outputShown = ref(0);
+
+  const lines = computed(() => props.source.split('\n'));
+  const nodes = computed(() => props.source.split('\n').length);
+  const bytes = computed(() => new TextEncoder().encode(props.source).length);
+
+  const typedCommand = computed(() => props.command.slice(0, commandShown.value));
+
   const escapeHtml = (text: string) =>
     text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  const rendered = computed(() =>
-    done.value
+  // Highlighting a partial document would leave an unterminated string on almost every frame,
+  // so the stream is escaped plainly and only handed to the real highlighter once it lands.
+  const body = computed(() =>
+    phase.value === 'done'
       ? highlightJson(props.source)
-      : escapeHtml(props.source.slice(0, typed.value)) || '&nbsp;',
+      : escapeHtml(props.source.slice(0, outputShown.value)),
   );
-
-  const lineCount = computed(() => props.source.split('\n').length);
 
   let timer: ReturnType<typeof setInterval> | null = null;
 
@@ -61,8 +84,19 @@
 
   const finish = () => {
     stop();
-    typed.value = props.source.length;
-    done.value = true;
+    commandShown.value = props.command.length;
+    outputShown.value = props.source.length;
+    phase.value = 'done';
+  };
+
+  const tick = () => {
+    if (phase.value === 'command') {
+      commandShown.value += 1;
+      if (commandShown.value >= props.command.length) phase.value = 'output';
+      return;
+    }
+    outputShown.value += props.speed;
+    if (outputShown.value >= props.source.length) finish();
   };
 
   onMounted(() => {
@@ -70,11 +104,7 @@
       finish();
       return;
     }
-
-    timer = setInterval(() => {
-      typed.value += props.speed;
-      if (typed.value >= props.source.length) finish();
-    }, 16);
+    timer = setInterval(tick, 28);
   });
 
   onUnmounted(stop);

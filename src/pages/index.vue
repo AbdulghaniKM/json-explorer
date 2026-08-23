@@ -56,7 +56,11 @@
           </div>
         </div>
 
-        <LandingTerminalDemo :source="SAMPLE_JSON" class="min-h-[18rem] lg:min-h-[22rem]" />
+        <LandingTerminalDemo
+          command="json-explorer orders.json"
+          label="session"
+          :source="HERO_JSON"
+        />
       </div>
     </section>
 
@@ -133,7 +137,6 @@
 </template>
 
 <script setup lang="ts">
-  import { SAMPLE_JSON } from '@/lib/json/sample';
   import { useCommandPalette } from '@/composables/useCommandPalette';
 
   definePage({
@@ -143,6 +146,24 @@
 
   const router = useRouter();
   const palette = useCommandPalette();
+
+  // Not the app's SAMPLE_JSON: that one is 26 lines with ~100 character rows, which overflows
+  // the hero panel both ways. This is cut to fit — 14 lines, nothing past 38 columns — while
+  // still covering every token colour the theme defines.
+  const HERO_JSON = `{
+  "id": "ord_9f2c41",
+  "paid": true,
+  "total": 219.59,
+  "customer": {
+    "name": "Amina Yusuf",
+    "vip": false
+  },
+  "items": [
+    { "sku": "KB-8801", "qty": 1 },
+    { "sku": "MS-2210", "qty": 2 }
+  ],
+  "notes": null
+}`;
 
   // Measured on a generated 33 MB / 2.8 M node document, the same figures the README quotes.
   const METRICS = [
