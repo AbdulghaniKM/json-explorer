@@ -61,7 +61,18 @@
 
   const settled = (): Letter[] => [...props.text].map((char) => cell(char));
 
-  const letters = ref<Letter[]>(settled());
+  const noise = (): string => (Math.random() > 0.5 ? '1' : '0');
+
+  const scrambled = (): Letter[] =>
+    [...props.text].map((char) => (char === ' ' ? cell(char) : cell(noise(), true)));
+
+  // Decided during setup, not on mount: initialising to the settled text would paint the real
+  // headline for one frame, scramble it, and decode it back — showing the answer before the
+  // effect that reveals it.
+  const stillTyped =
+    typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const letters = ref<Letter[]>(stillTyped ? settled() : scrambled());
 
   const timers = new Set<ReturnType<typeof setTimeout>>();
 
@@ -76,24 +87,48 @@
   const clearAll = () => {
     for (const handle of timers) clearTimeout(handle);
     timers.clear();
+    if (flicker) clearInterval(flicker);
+    flicker = null;
   };
 
-  const scrambleOne = (index: number) => {
-    const original = props.text[index];
-    if (original === ' ') return;
-
-    letters.value[index] = cell(Math.random() > 0.5 ? '1' : '0', true);
-    later(() => {
-      letters.value[index] = cell(original);
-    }, props.letterDuration);
-  };
+  /** Keeps the not-yet-decoded letters flickering so the reveal has something to reveal. */
+  let flicker: ReturnType<typeof setInterval> | null = null;
 
   const run = () => {
-    [...props.text].forEach((_, index) => later(() => scrambleOne(index), index * props.stagger));
+    flicker = setInterval(() => {
+      letters.value = letters.value.map((letter) =>
+        letter.scrambling ? cell(noise(), true) : letter,
+      );
+    }, 60);
+
+    [...props.text].forEach((char, index) => {
+      if (char === ' ') return;
+      later(
+        () => {
+          letters.value[index] = cell(char);
+          if (index === props.text.length - 1 && flicker) {
+            clearInterval(flicker);
+            flicker = null;
+          }
+        },
+        index * props.stagger + props.letterDuration,
+      );
+    });
+
+    // The last character may be a space, which never gets a settle timer of its own.
+    later(
+      () => {
+        if (!flicker) return;
+        clearInterval(flicker);
+        flicker = null;
+        letters.value = settled();
+      },
+      props.text.length * props.stagger + props.letterDuration + 80,
+    );
   };
 
   onMounted(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (stillTyped) return;
     later(run, props.initialDelay);
   });
 

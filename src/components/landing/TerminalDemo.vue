@@ -11,9 +11,18 @@
       </span>
     </header>
 
-    <div class="min-h-0 flex-1 overflow-hidden p-3">
+    <div class="relative min-h-0 flex-1 overflow-hidden p-3">
+      <!-- The finished session, rendered invisibly, holds the box open from the first frame.
+           Without it the card grows a line at a time as the text streams and shunts the rest
+           of the page down with it. -->
       <pre
-        class="font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre"
+        v-text="fullSession"
+        aria-hidden="true"
+        class="invisible font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre"
+      />
+
+      <pre
+        class="absolute inset-0 p-3 font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre"
       ><span class="text-primary select-none">$ </span><span v-text="typedCommand" /><span
         v-if="phase === 'command'"
         class="caret ms-px inline-block h-[0.95em] w-[0.5em] translate-y-[0.15em] bg-primary"
@@ -63,6 +72,12 @@
   const bytes = computed(() => new TextEncoder().encode(props.source).length);
 
   const typedCommand = computed(() => props.command.slice(0, commandShown.value));
+
+  /** What the pane will hold once it has finished typing, used only to reserve the space. */
+  const fullSession = computed(
+    () => `$ ${props.command}
+${props.source}`,
+  );
 
   const escapeHtml = (text: string) =>
     text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
