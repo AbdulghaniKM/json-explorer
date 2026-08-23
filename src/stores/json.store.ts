@@ -10,6 +10,7 @@ import {
   type TransformOp,
 } from '@/lib/json';
 import { runOffThread } from '@/composables/useJsonEngine';
+import { showSampleData } from '@/composables/usePreferences';
 
 const STORAGE_KEY = 'json-explorer:workspace';
 const PERSIST_LIMIT = 512_000;
@@ -46,8 +47,11 @@ const scanDelay = (length: number): number => {
 export const useJsonStore = defineStore('json-workspace', () => {
   const persisted = readPersisted();
 
-  const source = ref(persisted.source ?? SAMPLE_JSON);
-  const compare = ref(persisted.compare ?? SAMPLE_JSON_ALT);
+  const initial = showSampleData.value ? SAMPLE_JSON : '';
+  const initialCompare = showSampleData.value ? SAMPLE_JSON_ALT : '';
+
+  const source = ref(persisted.source ?? initial);
+  const compare = ref(persisted.compare ?? initialCompare);
   const indent = ref<IndentStyle>(persisted.indent ?? '2');
 
   const index = shallowRef<JsonIndex | null>(null);

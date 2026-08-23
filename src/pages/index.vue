@@ -39,6 +39,7 @@
         @click="save"
       />
       <UiAppButton
+        v-if="showSampleData"
         variant="ghost"
         size="sm"
         icon="icon-[solar--document-add-linear]"
@@ -242,10 +243,17 @@
           "
         >
           <UiAppButton
-            v-if="store.isEmpty"
+            v-if="store.isEmpty && showSampleData"
             variant="primary"
             label="Load sample"
             @click="store.loadSample"
+          />
+          <UiAppButton
+            v-else-if="store.isEmpty"
+            variant="primary"
+            icon="icon-[solar--upload-minimalistic-linear]"
+            label="Open a file"
+            @click="open"
           />
           <UiAppButton
             v-else-if="!store.scanning"
@@ -274,6 +282,7 @@
 </template>
 
 <script setup lang="ts">
+  import { showSampleData } from '@/composables/usePreferences';
   import { formatBytes } from '@/lib/json';
   import { useJsonTree } from '@/composables/useJsonTree';
   import { useJsonWorkspace } from '@/composables/useJsonWorkspace';

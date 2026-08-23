@@ -11,8 +11,8 @@ the page.
 | **Explore** `/`        | Collapsible tree with type colouring, search across keys and values, match navigation, path and value copy |
 | **Format** `/format`   | Beautify, minify, sort keys, drop empty values, escape/unescape, and repair malformed JSON                 |
 | **Compare** `/compare` | Structural diff that ignores key order, with optional array-order-insensitive matching                     |
-| **Analyze** `/analyze` | Characters, lines, raw/minified/gzip size, value-type distribution, depth, key counts and extremes         |
-| **Convert** `/convert` | TypeScript interfaces, C# classes for System.Text.Json, Zod schema, YAML, CSV and query strings            |
+| **Analyze** `/analyze` | Characters, lines, raw/minified/gzip size, and charted value-type, nesting-depth and key-frequency counts  |
+| **Convert** `/convert` | TypeScript interfaces, C# classes, .NET DTO records, Zod schema, YAML, CSV and query strings               |
 
 ## Built for large documents
 
@@ -34,7 +34,7 @@ That collapses somewhere around a few megabytes. JSON Explorer does none of thos
   quietly rewrite.
 - **Search by offset, not by walk.** Queries run as a native `indexOf` sweep over the text, and
   each hit is mapped back to its node with a binary search over the index — no tree traversal.
-- **Types without parsing.** TypeScript, C# and Zod generation infers its shape from the same flat
+- **Types without parsing.** TypeScript, C#, .NET DTO and Zod generation infers its shape from the same flat
   index, interning identical shapes as it goes, so a 191 MB document types in ~5 s and has no size
   cap at all.
 - **Honest limits.** Tools that genuinely need the whole document in memory (YAML, CSV and query
@@ -105,7 +105,7 @@ src/
 │   ├── parse.ts           # JSON.parse wrapper with line/column error positions
 │   ├── repair.ts          # Tolerant scanner for malformed JSON + NDJSON
 │   ├── diff.ts            # Semantic diff with a node budget
-│   ├── convert.ts         # TypeScript, C#, Zod, YAML, CSV, query string emitters
+│   ├── convert.ts         # TypeScript, C#, .NET DTO, Zod, YAML, CSV, query string emitters
 │   ├── format.ts          # Escape, unescape, drop-empties, byte formatting
 │   ├── compress.ts        # Streaming gzip size via CompressionStream
 │   ├── highlight.ts       # HTML-escaped tokenizer for the editor overlay
@@ -128,6 +128,17 @@ Colours live in `src/config/app.config.ts` (`theme.light` / `theme.dark`) and ar
 variables at boot. JSON token colours and diff highlight colours are defined in `src/style.css`
 (`--token-*`, `--diff-*`). Light and dark follow the system preference and can be toggled in the
 header.
+
+## Preferences
+
+The gear in the header holds two switches, persisted to `localStorage` under
+`json-explorer:preferences` and read by `src/composables/usePreferences.ts`:
+
+- **Sample document** — whether a first visit pre-fills the workspace with the demo order and
+  whether the Sample buttons appear on each tool. Turning it off clears an untouched workspace;
+  turning it back on refills an empty one. Neither ever overwrites text you typed.
+- **Sampled markers** — whether analyze flags the statistics it stops counting exactly on very
+  large documents (key counts past 400k keys, the number range past its sample limit).
 
 ## Deployment
 

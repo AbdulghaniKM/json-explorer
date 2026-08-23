@@ -9,6 +9,7 @@
         @click="store.swap"
       />
       <UiAppButton
+        v-if="showSampleData"
         variant="ghost"
         size="sm"
         icon="icon-[solar--document-add-linear]"
@@ -117,6 +118,7 @@
 </template>
 
 <script setup lang="ts">
+  import { showSampleData } from '@/composables/usePreferences';
   import type { DiffNode, DiffSummary, EngineResponseOf } from '@/lib/json';
   import { runOffThread } from '@/composables/useJsonEngine';
   import { useJsonFile } from '@/composables/useJsonFile';

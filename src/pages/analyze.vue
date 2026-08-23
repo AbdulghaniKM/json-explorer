@@ -9,6 +9,7 @@
         @click="open"
       />
       <UiAppButton
+        v-if="showSampleData"
         variant="ghost"
         size="sm"
         icon="icon-[solar--document-add-linear]"
@@ -62,24 +63,77 @@
         </div>
 
         <div class="grid gap-3 lg:grid-cols-2">
-          <JsonPanel title="Value types" icon="icon-[solar--pallete-2-linear]">
-            <ul class="space-y-2.5 p-3">
-              <li v-for="row in typeRows" :key="row.type">
-                <div class="mb-1 flex items-center justify-between text-xs">
-                  <span class="font-medium text-text capitalize">{{ row.type }}</span>
-                  <span class="font-mono text-text-muted tabular-nums">
-                    {{ format(row.count) }} · {{ row.percent }}%
-                  </span>
-                </div>
-                <div class="h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    class="h-full rounded-full"
-                    :class="row.color"
-                    :style="{ width: `${row.percent}%` }"
-                  />
-                </div>
-              </li>
-            </ul>
+          <JsonPanel
+            title="Value types"
+            icon="icon-[solar--pallete-2-linear]"
+            :badge="`${format(stats.totalNodes)} nodes`"
+          >
+            <div class="p-3">
+              <JsonChart
+                type="bar"
+                horizontal
+                :height="13"
+                :categories="typeChart.categories"
+                :series="typeChart.series"
+                :formatter="format"
+              />
+              <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 border-t border-border/60 pt-2">
+                <li
+                  v-for="row in typeRows"
+                  :key="row.type"
+                  class="flex items-center gap-1.5 text-[11px]"
+                >
+                  <span class="text-text-muted capitalize">{{ row.type }}</span>
+                  <span class="font-mono text-text tabular-nums">{{ format(row.count) }}</span>
+                  <span class="font-mono text-text-muted tabular-nums">{{ row.percent }}%</span>
+                </li>
+              </ul>
+            </div>
+          </JsonPanel>
+
+          <JsonPanel
+            title="Nesting profile"
+            icon="icon-[solar--layers-linear]"
+            :badge="`${stats.depth} levels`"
+          >
+            <div class="p-3">
+              <JsonChart
+                type="bar"
+                :height="13"
+                :categories="depthChart.categories"
+                :series="depthChart.series"
+                :formatter="format"
+              />
+              <p class="mt-2 border-t border-border/60 pt-2 text-[11px] text-text-muted">
+                Nodes at each level of nesting. Level
+                <span class="font-mono text-text tabular-nums">{{ depthChart.peak.level }}</span>
+                is the busiest, holding
+                <span class="font-mono text-text tabular-nums">
+                  {{ format(depthChart.peak.count) }}
+                </span>
+                of them.
+              </p>
+            </div>
+          </JsonPanel>
+        </div>
+
+        <div class="grid gap-3 lg:grid-cols-2">
+          <JsonPanel
+            title="Most repeated keys"
+            icon="icon-[solar--hashtag-linear]"
+            :badge="keysBadge"
+          >
+            <div v-if="keyChart.categories.length" class="p-3">
+              <JsonChart
+                type="bar"
+                horizontal
+                :height="Math.max(9, keyChart.categories.length * 1.5)"
+                :categories="keyChart.categories"
+                :series="keyChart.series"
+                :formatter="format"
+              />
+            </div>
+            <p v-else class="p-3 text-sm text-text-muted">No object keys in this document.</p>
           </JsonPanel>
 
           <JsonPanel title="Structure" icon="icon-[solar--ruler-cross-pen-linear]">
@@ -102,23 +156,20 @@
         </div>
 
         <JsonPanel
-          title="Most repeated keys"
-          icon="icon-[solar--hashtag-linear]"
-          :badge="stats.keyStatsPartial ? 'sampled' : undefined"
+          title="Size breakdown"
+          icon="icon-[solar--archive-minimalistic-linear]"
+          :badge="`${minifySaving} smaller minified`"
         >
-          <div v-if="stats.topKeys.length" class="flex flex-wrap gap-2 p-3">
-            <span
-              v-for="entry in stats.topKeys"
-              :key="entry.key"
-              class="flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-2.5 py-1 font-mono text-xs text-text"
-            >
-              {{ entry.key }}
-              <span class="rounded-full bg-primary/10 px-1.5 text-[11px] text-primary">
-                {{ format(entry.count) }}
-              </span>
-            </span>
+          <div class="p-3">
+            <JsonChart
+              type="bar"
+              horizontal
+              :height="7.5"
+              :categories="sizeChart.categories"
+              :series="sizeChart.series"
+              :formatter="formatBytes"
+            />
           </div>
-          <p v-else class="p-3 text-sm text-text-muted">No object keys in this document.</p>
         </JsonPanel>
       </div>
 
@@ -143,10 +194,17 @@
         "
       >
         <UiAppButton
-          v-if="store.isEmpty"
+          v-if="store.isEmpty && showSampleData"
           variant="primary"
           label="Load sample"
           @click="store.loadSample"
+        />
+        <UiAppButton
+          v-else-if="store.isEmpty"
+          variant="primary"
+          icon="icon-[solar--upload-minimalistic-linear]"
+          label="Open a file"
+          @click="open"
         />
       </UiAppEmptyState>
     </div>
@@ -156,6 +214,7 @@
 <script setup lang="ts">
   import { formatBytes, gzipSize, pathOf } from '@/lib/json';
   import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
+  import { showSampleData, showSampledMarkers } from '@/composables/usePreferences';
 
   definePage({
     route: '/analyze',
@@ -184,26 +243,79 @@
     return `${Math.round((gzip.value / stats.value.bytes) * 100)}% of raw size`;
   });
 
-  const typeColors: Record<string, string> = {
-    object: 'bg-primary',
-    array: 'bg-secondary',
-    string: 'bg-success',
-    number: 'bg-warning',
-    boolean: 'bg-info',
-    null: 'bg-text-muted',
-  };
-
   const typeRows = computed(() => {
     if (!stats.value) return [];
     const total = stats.value.totalNodes || 1;
     return Object.entries(stats.value.counts)
-      .map(([type, count]) => ({
-        type,
-        count,
-        percent: Math.round((count / total) * 100),
-        color: typeColors[type] ?? 'bg-muted',
-      }))
+      .map(([type, count]) => ({ type, count, percent: Math.round((count / total) * 100) }))
       .sort((a, b) => b.count - a.count);
+  });
+
+  const typeChart = computed(() => {
+    const present = typeRows.value.filter((row) => row.count > 0);
+    return {
+      categories: present.map((row) => row.type),
+      series: [{ name: 'Nodes', data: present.map((row) => row.count) }],
+    };
+  });
+
+  /** Levels past this fold into one trailing bucket, so a deep document stays readable. */
+  const DEPTH_LEVELS = 14;
+
+  const depthChart = computed(() => {
+    const index = store.index;
+    if (!index) return { categories: [], series: [], peak: { level: 0, count: 0 } };
+
+    const buckets: number[] = Array.from({ length: DEPTH_LEVELS + 1 }, () => 0);
+    for (let id = 0; id < index.count; id++) {
+      buckets[Math.min(index.depth[id], DEPTH_LEVELS)]++;
+    }
+
+    const last = buckets.reduce((found, count, level) => (count > 0 ? level : found), 0);
+    const data = buckets.slice(0, last + 1);
+    const categories = data.map((_, level) =>
+      level === DEPTH_LEVELS ? `${DEPTH_LEVELS}+` : String(level),
+    );
+
+    let peak = { level: 0, count: 0 };
+    data.forEach((count, level) => {
+      if (count > peak.count) peak = { level, count };
+    });
+
+    return { categories, series: [{ name: 'Nodes', data }], peak };
+  });
+
+  const keyChart = computed(() => {
+    const entries = stats.value?.topKeys.slice(0, 12) ?? [];
+    return {
+      categories: entries.map((entry) => entry.key),
+      series: [{ name: 'Occurrences', data: entries.map((entry) => entry.count) }],
+    };
+  });
+
+  const sizeChart = computed(() => {
+    const current = stats.value;
+    if (!current) return { categories: [], series: [] };
+
+    const categories = ['Raw', 'Minified'];
+    const data = [current.bytes, current.minifiedBytes];
+    if (gzip.value !== null) {
+      categories.push('Gzip');
+      data.push(gzip.value);
+    }
+
+    return { categories, series: [{ name: 'Bytes', data }] };
+  });
+
+  const minifySaving = computed(() => {
+    const current = stats.value;
+    if (!current?.bytes) return '0%';
+    return `${(((current.bytes - current.minifiedBytes) / current.bytes) * 100).toFixed(1)}%`;
+  });
+
+  const keysBadge = computed(() => {
+    if (stats.value?.keyStatsPartial && showSampledMarkers.value) return 'sampled';
+    return `${format(stats.value?.uniqueKeys ?? 0)} unique`;
   });
 
   const nodePath = (node: number | undefined) => {
@@ -220,9 +332,10 @@
       { label: 'Total keys', value: format(current.totalKeys) },
       {
         label: 'Unique keys',
-        value: current.keyStatsPartial
-          ? `${format(current.uniqueKeys)}+`
-          : format(current.uniqueKeys),
+        value:
+          current.keyStatsPartial && showSampledMarkers.value
+            ? `${format(current.uniqueKeys)}+`
+            : format(current.uniqueKeys),
       },
       { label: 'Empty values', value: format(current.emptyValues) },
       {
@@ -240,7 +353,9 @@
       {
         label: 'Number range',
         value: current.numberRange
-          ? `${current.numberRange.min} … ${current.numberRange.max}${current.numberStatsPartial ? ' (sampled)' : ''}`
+          ? `${current.numberRange.min} … ${current.numberRange.max}${
+              current.numberStatsPartial && showSampledMarkers.value ? ' (sampled)' : ''
+            }`
           : '—',
       },
       {

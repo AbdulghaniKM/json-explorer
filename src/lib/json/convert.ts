@@ -20,8 +20,12 @@ const INT32_MAX = 2147483647;
 
 const NUMERIC_RANK: Partial<Record<PrimitiveName, number>> = { integer: 0, long: 1, number: 2 };
 
-const numberKind = (value: number): PrimitiveName => {
-  if (!Number.isInteger(value)) return 'number';
+/** Reads the literal, not the parsed value: `178.0` is a decimal in JSON even though it
+ *  round-trips through an integer. */
+const numberKind = (literal: string): PrimitiveName => {
+  if (/[.eE]/.test(literal)) return 'number';
+  const value = Number(literal);
+  if (!Number.isSafeInteger(value)) return 'number';
   return Math.abs(value) > INT32_MAX ? 'long' : 'integer';
 };
 
@@ -52,8 +56,15 @@ const signature = (node: TypeNode): string => {
   return value;
 };
 
+const isUnknown = (node: TypeNode): boolean => node.kind === 'primitive' && node.name === 'unknown';
+
 const unify = (a: TypeNode, b: TypeNode): TypeNode => {
   if (signature(a) === signature(b)) return a;
+
+  // An empty array carries no element type. Widening against it would turn
+  // `string[]` plus `[]` into `(string | unknown)[]`, so let the known side win.
+  if (isUnknown(a)) return b;
+  if (isUnknown(b)) return a;
 
   if (a.kind === 'primitive' && b.kind === 'primitive') {
     const numeric = widerNumber(a.name, b.name);
@@ -162,8 +173,7 @@ export const shapeOfIndex = (text: string, index: JsonIndex): JsonShape => {
 
     if (type === NODE_STRING) return intern(primitive('string'));
     if (type === NODE_NUMBER) {
-      const raw = Number(text.slice(index.valueStart[id], index.valueEnd[id]));
-      return intern(primitive(numberKind(raw)));
+      return intern(primitive(numberKind(text.slice(index.valueStart[id], index.valueEnd[id]))));
     }
     if (type === NODE_BOOLEAN) return intern(primitive('boolean'));
     return intern(primitive('null'));
@@ -513,4 +523,114 @@ export const jsonToQueryString = (value: JsonValue): string => {
   const row = flattenRow(value);
   for (const [key, item] of Object.entries(row)) params.append(key, item);
   return params.toString();
+};
+
+const DOTNET_TYPES: Record<PrimitiveName, string> = {
+  string: 'string',
+  integer: 'int',
+  long: 'long',
+  number: 'double',
+  boolean: 'bool',
+  null: 'object',
+  unknown: 'object',
+};
+
+const isNullNode = (node: TypeNode): boolean => node.kind === 'primitive' && node.name === 'null';
+
+const withoutNull = (node: TypeNode): { node: TypeNode | null; nullable: boolean } => {
+  if (isNullNode(node)) return { node: null, nullable: true };
+  if (node.kind !== 'union') return { node, nullable: false };
+
+  const options = node.options.filter((option) => !isNullNode(option));
+  const nullable = options.length !== node.options.length;
+  if (options.length === 0) return { node: null, nullable: true };
+  if (options.length === 1) return { node: options[0], nullable };
+  return { node: { kind: 'union', options }, nullable };
+};
+
+export const dotnetFromShape = (shape: JsonShape, rootName = 'Root'): string => {
+  const records: Array<{ name: string; members: string[] }> = [];
+  const bySignature = new Map<string, string>();
+  const uniqueName = createNameFactory();
+  let usesCollections = false;
+  let usesJsonElement = false;
+
+  const memberName = (recordName: string, key: string, taken: Set<string>): string => {
+    const identifier = csharpIdentifier(key);
+    const base = identifier === recordName ? `${identifier}Value` : identifier;
+    let name = base;
+    let counter = 2;
+    while (taken.has(name)) name = `${base}${counter++}`;
+    taken.add(name);
+    return name;
+  };
+
+  const member = (key: string, type: string, name: string, required: boolean): string =>
+    `    [JsonPropertyName(${JSON.stringify(key)})]\n    public ${required ? 'required ' : ''}${type} ${name} { get; init; }`;
+
+  const render = (node: TypeNode, name: string): string => {
+    if (node.kind === 'primitive') return DOTNET_TYPES[node.name];
+
+    if (node.kind === 'union') {
+      usesJsonElement = true;
+      return 'JsonElement';
+    }
+
+    if (node.kind === 'array') {
+      usesCollections = true;
+      const element = withoutNull(node.element);
+      const elementName = singular(name);
+      if (!element.node) return 'IReadOnlyList<object?>';
+      const rendered = render(element.node, elementName);
+      return `IReadOnlyList<${element.nullable ? `${rendered}?` : rendered}>`;
+    }
+
+    const key = signature(node);
+    const existing = bySignature.get(key);
+    if (existing) return existing;
+
+    const recordName = uniqueName(`${pascalCase(name)}Dto`);
+    bySignature.set(key, recordName);
+
+    const taken = new Set<string>();
+    const members = [...node.fields.entries()].map(([field, meta]) => {
+      const stripped = withoutNull(meta.node);
+      const optional = meta.optional || stripped.nullable;
+      const type = stripped.node ? render(stripped.node, field) : 'object';
+      return member(
+        field,
+        optional ? `${type}?` : type,
+        memberName(recordName, field, taken),
+        !optional,
+      );
+    });
+
+    records.push({ name: recordName, members });
+    return recordName;
+  };
+
+  const root = withoutNull(shape);
+  const rootType = root.node
+    ? `${render(root.node, rootName)}${root.nullable ? '?' : ''}`
+    : 'object?';
+  const usage = `// JsonSerializer.Deserialize<${rootType}>(json);`;
+  if (records.length === 0) return usage;
+
+  const usings = [
+    usesCollections ? 'using System.Collections.Generic;' : '',
+    usesJsonElement ? 'using System.Text.Json;' : '',
+    'using System.Text.Json.Serialization;',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  const declarations = records
+    .reverse()
+    .map((item) =>
+      item.members.length
+        ? `public sealed record ${item.name}\n{\n${item.members.join('\n\n')}\n}`
+        : `public sealed record ${item.name};`,
+    );
+
+  return [usings, usage, ...declarations].join('\n\n');
 };

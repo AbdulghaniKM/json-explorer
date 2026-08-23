@@ -60,6 +60,7 @@
               </ul>
             </div>
           </div>
+          <UiSettingsMenu />
           <UiThemeToggle />
         </div>
       </div>

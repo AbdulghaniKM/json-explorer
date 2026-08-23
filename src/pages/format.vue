@@ -124,6 +124,7 @@
             @click="save"
           />
           <UiAppButton
+            v-if="showSampleData"
             icon="icon-[solar--document-add-linear]"
             icon-only
             size="xs"
@@ -196,6 +197,7 @@
 </template>
 
 <script setup lang="ts">
+  import { showSampleData } from '@/composables/usePreferences';
   import { formatBytes } from '@/lib/json';
   import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
   import { useToast } from '@/composables/useToast';

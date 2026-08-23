@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  dotnetFromShape,
   jsonToCsv,
   jsonToQueryString,
   jsonToYaml,
@@ -253,6 +254,74 @@ describe('convert - TypeScript', () => {
   it('quotes keys that are not valid identifiers', () => {
     const ts = typeScriptFromShape(shapeOf('{"not-an-ident":1}'), 'Root');
     expect(ts).toMatch(/["']not-an-ident["']/);
+  });
+});
+
+describe('convert - shape inference', () => {
+  it('keeps a decimal literal a decimal even when it holds a whole number', () => {
+    const ts = typeScriptFromShape(shapeOf('{"a":178.0,"b":178}'), 'Root');
+    expect(ts).toMatch(/a: number/);
+    expect(ts).toMatch(/b: number/);
+    const cs = dotnetFromShape(shapeOf('{"a":178.0,"b":178}'), 'Root');
+    expect(cs).toMatch(/double A/);
+    expect(cs).toMatch(/int B/);
+  });
+
+  it('lets a known element type win over an empty array', () => {
+    const ts = typeScriptFromShape(shapeOf('{"tags":[["a"],[]]}'), 'Root');
+    expect(ts).toMatch(/tags: string\[]\[]/);
+    expect(ts).not.toContain('unknown');
+  });
+
+  it('widens integers to long past the int32 range', () => {
+    expect(dotnetFromShape(shapeOf('{"n":9999999999}'), 'Root')).toMatch(/long N/);
+  });
+});
+
+describe('convert - .NET DTO', () => {
+  it('emits sealed records with required init-only properties', () => {
+    const cs = dotnetFromShape(shapeOf('{"id":1,"name":"x"}'), 'Order');
+    expect(cs).toContain('public sealed record OrderDto');
+    expect(cs).toContain('[JsonPropertyName("id")]');
+    expect(cs).toContain('public required int Id { get; init; }');
+    expect(cs).toContain('using System.Text.Json.Serialization;');
+  });
+
+  it('drops required and adds ? for keys missing from some array items', () => {
+    const cs = dotnetFromShape(shapeOf('{"rows":[{"a":1},{"a":1,"b":"x"}]}'), 'Root');
+    expect(cs).toContain('public string? B { get; init; }');
+    expect(cs).not.toContain('required string? B');
+  });
+
+  it('collapses a nullable union into a nullable property', () => {
+    const cs = dotnetFromShape(shapeOf('{"rows":[{"a":"x"},{"a":null}]}'), 'Root');
+    expect(cs).toContain('public string? A { get; init; }');
+    expect(cs).not.toContain('JsonElement');
+  });
+
+  it('uses IReadOnlyList and names nested records after their key', () => {
+    const cs = dotnetFromShape(shapeOf('{"items":[{"sku":"a"}]}'), 'Root');
+    expect(cs).toContain('IReadOnlyList<ItemDto> Items');
+    expect(cs).toContain('public sealed record ItemDto');
+    expect(cs).toContain('using System.Collections.Generic;');
+  });
+
+  it('falls back to JsonElement for a genuinely mixed array', () => {
+    const cs = dotnetFromShape(shapeOf('{"mixed":[1,"a"]}'), 'Root');
+    expect(cs).toContain('IReadOnlyList<JsonElement>');
+    expect(cs).toContain('using System.Text.Json;');
+  });
+
+  it('emits a bodyless record for an empty object', () => {
+    expect(dotnetFromShape(shapeOf('{"empty":{}}'), 'Root')).toContain(
+      'public sealed record EmptyDto;',
+    );
+  });
+
+  it('pascal-cases keys that are not valid identifiers', () => {
+    const cs = dotnetFromShape(shapeOf('{"not-an-ident":1}'), 'Root');
+    expect(cs).toContain('[JsonPropertyName("not-an-ident")]');
+    expect(cs).toContain('NotAnIdent { get; init; }');
   });
 });
 

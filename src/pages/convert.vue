@@ -1,23 +1,7 @@
 <template>
   <div class="flex flex-col gap-3">
     <div class="flex flex-wrap items-center gap-2">
-      <div class="flex flex-wrap gap-1 rounded-xl border border-border bg-surface p-1">
-        <button
-          v-for="target in TARGETS"
-          :key="target.id"
-          type="button"
-          class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-          :class="
-            active === target.id
-              ? 'bg-primary/10 text-primary'
-              : 'text-text-muted hover:bg-muted hover:text-text'
-          "
-          @click="active = target.id"
-        >
-          <UiAppIcon :name="target.icon" :size="0.95" />
-          {{ target.label }}
-        </button>
-      </div>
+      <JsonTargetSelect v-model="active" />
 
       <label
         v-if="currentTarget.usesRootName"
@@ -83,6 +67,7 @@
             @click="open"
           />
           <UiAppButton
+            v-if="showSampleData"
             icon="icon-[solar--document-add-linear]"
             icon-only
             size="xs"
@@ -107,77 +92,17 @@
 </template>
 
 <script setup lang="ts">
+  import { showSampleData } from '@/composables/usePreferences';
   import { formatBytes, type ConvertTarget, type EngineResponseOf } from '@/lib/json';
+  import { CONVERT_TARGETS } from '@/config/convert';
   import { runOffThread } from '@/composables/useJsonEngine';
   import { CLIPBOARD_LIMIT, useJsonWorkspace } from '@/composables/useJsonWorkspace';
   import { useToast } from '@/composables/useToast';
 
   definePage({
     route: '/convert',
-    head: 'Convert JSON — TypeScript, C#, Zod, YAML, CSV',
+    head: 'Convert JSON — TypeScript, C#, .NET DTO, Zod, YAML, CSV',
   });
-
-  const TARGETS: Array<{
-    id: ConvertTarget;
-    label: string;
-    icon: string;
-    extension: string;
-    mime: string;
-    hint: string;
-    usesRootName?: boolean;
-  }> = [
-    {
-      id: 'typescript',
-      label: 'TypeScript',
-      icon: 'icon-[solar--code-linear]',
-      extension: 'ts',
-      mime: 'text/plain',
-      hint: 'Interfaces are merged across array items — keys missing from some items become optional.',
-      usesRootName: true,
-    },
-    {
-      id: 'csharp',
-      label: 'C#',
-      icon: 'icon-[solar--code-file-linear]',
-      extension: 'cs',
-      mime: 'text/plain',
-      hint: 'Classes for System.Text.Json in .NET Core — every property carries [JsonPropertyName], and keys missing from some array items become nullable.',
-      usesRootName: true,
-    },
-    {
-      id: 'zod',
-      label: 'Zod',
-      icon: 'icon-[solar--shield-check-linear]',
-      extension: 'ts',
-      mime: 'text/plain',
-      hint: 'A runtime schema plus an inferred type, ready to paste into a Zod project.',
-      usesRootName: true,
-    },
-    {
-      id: 'yaml',
-      label: 'YAML',
-      icon: 'icon-[solar--file-text-linear]',
-      extension: 'yaml',
-      mime: 'text/yaml',
-      hint: 'Strings are quoted only when YAML would otherwise read them as another type.',
-    },
-    {
-      id: 'csv',
-      label: 'CSV',
-      icon: 'icon-[solar--checklist-minimalistic-linear]',
-      extension: 'csv',
-      mime: 'text/csv',
-      hint: 'Nested objects are flattened to dotted column names; nested arrays stay as JSON.',
-    },
-    {
-      id: 'query',
-      label: 'Query string',
-      icon: 'icon-[solar--link-minimalistic-2-linear]',
-      extension: 'txt',
-      mime: 'text/plain',
-      hint: 'Flattened key/value pairs, URL-encoded — handy for reproducing an API call.',
-    },
-  ];
 
   const { store, open, copy, download } = useJsonWorkspace();
   const { error: toastError } = useToast();
@@ -194,7 +119,7 @@
   const failure = ref('');
 
   const currentTarget = computed(
-    () => TARGETS.find((target) => target.id === active.value) ?? TARGETS[0],
+    () => CONVERT_TARGETS.find((target) => target.id === active.value) ?? CONVERT_TARGETS[0],
   );
 
   const placeholder = computed(() => {

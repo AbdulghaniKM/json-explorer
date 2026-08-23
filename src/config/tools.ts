@@ -34,6 +34,6 @@ export const TOOLS: ToolLink[] = [
     label: 'Convert',
     path: '/convert',
     icon: 'icon-[solar--refresh-square-linear]',
-    description: 'TypeScript, C#, Zod, YAML, CSV and query strings',
+    description: 'TypeScript, C#, .NET DTOs, Zod, YAML, CSV and query strings',
   },
 ];

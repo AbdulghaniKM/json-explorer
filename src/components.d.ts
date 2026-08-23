@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    JsonChart: typeof import('./components/json/Chart.vue')['default']
     JsonDiffNode: typeof import('./components/json/DiffNode.vue')['default']
     JsonDiffTree: typeof import('./components/json/DiffTree.vue')['default']
     JsonEditor: typeof import('./components/json/Editor.vue')['default']
@@ -18,6 +19,7 @@ declare module 'vue' {
     JsonOutput: typeof import('./components/json/Output.vue')['default']
     JsonPanel: typeof import('./components/json/Panel.vue')['default']
     JsonStatCard: typeof import('./components/json/StatCard.vue')['default']
+    JsonTargetSelect: typeof import('./components/json/TargetSelect.vue')['default']
     JsonVirtualTree: typeof import('./components/json/VirtualTree.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
@@ -28,9 +30,11 @@ declare module 'vue' {
     UiAppPageLoader: typeof import('./components/ui/AppPageLoader.vue')['default']
     UiAppSkeleton: typeof import('./components/ui/AppSkeleton.vue')['default']
     UiAppSpinner: typeof import('./components/ui/AppSpinner.vue')['default']
+    UiAppSwitch: typeof import('./components/ui/AppSwitch.vue')['default']
     UiAppText: typeof import('./components/ui/AppText.vue')['default']
     UiAppToast: typeof import('./components/ui/AppToast.vue')['default']
     UiAppTooltip: typeof import('./components/ui/AppTooltip.vue')['default']
+    UiSettingsMenu: typeof import('./components/ui/SettingsMenu.vue')['default']
     UiThemeToggle: typeof import('./components/ui/ThemeToggle.vue')['default']
   }
 }

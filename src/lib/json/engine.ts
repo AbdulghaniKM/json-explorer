@@ -10,6 +10,7 @@ import { parseNdjson, repairJson } from './repair';
 import { diffJson } from './diff';
 import {
   csharpFromShape,
+  dotnetFromShape,
   jsonToCsv,
   jsonToQueryString,
   jsonToYaml,
@@ -29,7 +30,7 @@ export type TransformOp =
   | 'unescape'
   | 'repair';
 
-export type ConvertTarget = 'typescript' | 'csharp' | 'zod' | 'yaml' | 'csv' | 'query';
+export type ConvertTarget = 'typescript' | 'csharp' | 'dotnet' | 'zod' | 'yaml' | 'csv' | 'query';
 
 export const PARSE_LIMIT = 32 * 1024 * 1024;
 export const REPAIR_LIMIT = 24 * 1024 * 1024;
@@ -262,11 +263,12 @@ const transform = (request: Extract<EngineRequest, { kind: 'transform' }>): Engi
   };
 };
 
-const SHAPE_TARGETS = new Set<ConvertTarget>(['typescript', 'csharp', 'zod']);
+const SHAPE_TARGETS = new Set<ConvertTarget>(['typescript', 'csharp', 'dotnet', 'zod']);
 
 const renderShape = (target: ConvertTarget, shape: JsonShape, rootName: string): string => {
   if (target === 'typescript') return typeScriptFromShape(shape, rootName || 'Root');
   if (target === 'csharp') return csharpFromShape(shape, rootName || 'Root');
+  if (target === 'dotnet') return dotnetFromShape(shape, rootName || 'Root');
   return zodFromShape(shape, rootName || 'root');
 };
 

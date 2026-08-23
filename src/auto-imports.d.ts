@@ -7,6 +7,8 @@
 export {}
 declare global {
   const CLIPBOARD_LIMIT: typeof import('./composables/useJsonWorkspace').CLIPBOARD_LIMIT
+  const CONVERT_GROUPS: typeof import('./config/convert').CONVERT_GROUPS
+  const CONVERT_TARGETS: typeof import('./config/convert').CONVERT_TARGETS
   const EDIT_LIMIT: typeof import('./stores/json.store').EDIT_LIMIT
   const EXPAND_ALL_LIMIT: typeof import('./composables/useJsonTree').EXPAND_ALL_LIMIT
   const EffectScope: typeof import('vue').EffectScope
@@ -119,6 +121,8 @@ declare global {
   const shallowReactive: typeof import('vue').shallowReactive
   const shallowReadonly: typeof import('vue').shallowReadonly
   const shallowRef: typeof import('vue').shallowRef
+  const showSampleData: typeof import('./composables/usePreferences').showSampleData
+  const showSampledMarkers: typeof import('./composables/usePreferences').showSampledMarkers
   const storeToRefs: typeof import('pinia').storeToRefs
   const syncRef: typeof import('@vueuse/core').syncRef
   const syncRefs: typeof import('@vueuse/core').syncRefs
@@ -255,6 +259,7 @@ declare global {
   const usePointer: typeof import('@vueuse/core').usePointer
   const usePointerLock: typeof import('@vueuse/core').usePointerLock
   const usePointerSwipe: typeof import('@vueuse/core').usePointerSwipe
+  const usePreferences: typeof import('./composables/usePreferences').usePreferences
   const usePreferredColorScheme: typeof import('@vueuse/core').usePreferredColorScheme
   const usePreferredContrast: typeof import('@vueuse/core').usePreferredContrast
   const usePreferredDark: typeof import('@vueuse/core').usePreferredDark
@@ -350,6 +355,9 @@ declare global {
   export type { JsonTreeApi } from './composables/useJsonTree'
   import('./composables/useJsonTree')
   // @ts-ignore
+  export type { Preferences } from './composables/usePreferences'
+  import('./composables/usePreferences')
+  // @ts-ignore
   export type { Toast } from './composables/useToast'
   import('./composables/useToast')
   // @ts-ignore
@@ -358,6 +366,9 @@ declare global {
   // @ts-ignore
   export type { TextVariant, TextSize, TextWeight, TextColor, TextAlign, TextTransform, TextDecoration, TextDecorationStyle, TextFont, TextTracking, TextLeading, TextWrap, TextWhitespace, TextMaxWidth, AppTextProps, VariantConfig } from './types/text.types'
   import('./types/text.types')
+  // @ts-ignore
+  export type { ConvertGroup, ConvertTargetOption } from './config/convert'
+  import('./config/convert')
   // @ts-ignore
   export type { ToolLink } from './config/tools'
   import('./config/tools')
@@ -372,6 +383,8 @@ declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly CLIPBOARD_LIMIT: UnwrapRef<typeof import('./composables/useJsonWorkspace')['CLIPBOARD_LIMIT']>
+    readonly CONVERT_GROUPS: UnwrapRef<typeof import('./config/convert')['CONVERT_GROUPS']>
+    readonly CONVERT_TARGETS: UnwrapRef<typeof import('./config/convert')['CONVERT_TARGETS']>
     readonly EDIT_LIMIT: UnwrapRef<typeof import('./stores/json.store')['EDIT_LIMIT']>
     readonly EXPAND_ALL_LIMIT: UnwrapRef<typeof import('./composables/useJsonTree')['EXPAND_ALL_LIMIT']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
@@ -483,6 +496,8 @@ declare module 'vue' {
     readonly shallowReactive: UnwrapRef<typeof import('vue')['shallowReactive']>
     readonly shallowReadonly: UnwrapRef<typeof import('vue')['shallowReadonly']>
     readonly shallowRef: UnwrapRef<typeof import('vue')['shallowRef']>
+    readonly showSampleData: UnwrapRef<typeof import('./composables/usePreferences')['showSampleData']>
+    readonly showSampledMarkers: UnwrapRef<typeof import('./composables/usePreferences')['showSampledMarkers']>
     readonly storeToRefs: UnwrapRef<typeof import('pinia')['storeToRefs']>
     readonly syncRef: UnwrapRef<typeof import('@vueuse/core')['syncRef']>
     readonly syncRefs: UnwrapRef<typeof import('@vueuse/core')['syncRefs']>
@@ -619,6 +634,7 @@ declare module 'vue' {
     readonly usePointer: UnwrapRef<typeof import('@vueuse/core')['usePointer']>
     readonly usePointerLock: UnwrapRef<typeof import('@vueuse/core')['usePointerLock']>
     readonly usePointerSwipe: UnwrapRef<typeof import('@vueuse/core')['usePointerSwipe']>
+    readonly usePreferences: UnwrapRef<typeof import('./composables/usePreferences')['usePreferences']>
     readonly usePreferredColorScheme: UnwrapRef<typeof import('@vueuse/core')['usePreferredColorScheme']>
     readonly usePreferredContrast: UnwrapRef<typeof import('@vueuse/core')['usePreferredContrast']>
     readonly usePreferredDark: UnwrapRef<typeof import('@vueuse/core')['usePreferredDark']>

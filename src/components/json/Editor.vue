@@ -60,7 +60,7 @@
           <textarea
             ref="textareaRef"
             :value="modelValue"
-            :placeholder="placeholder"
+            :placeholder="placeholderText"
             :readonly="readonly"
             spellcheck="false"
             autocomplete="off"
@@ -128,6 +128,7 @@
   import { EDIT_LIMIT } from '@/stores/json.store';
   import { useJsonFile } from '@/composables/useJsonFile';
   import JsonLineViewer from './LineViewer.vue';
+  import { showSampleData } from '@/composables/usePreferences';
 
   const props = withDefaults(
     defineProps<{
@@ -141,7 +142,7 @@
     }>(),
     {
       label: 'JSON',
-      placeholder: 'Paste JSON here, drop a file, or load the sample…',
+      placeholder: '',
       error: null,
       valid: false,
       readonly: false,
@@ -153,6 +154,13 @@
     'update:modelValue': [value: string];
     file: [name: string];
   }>();
+
+  const placeholderText = computed(() => {
+    if (props.placeholder) return props.placeholder;
+    return showSampleData.value
+      ? 'Paste JSON here, drop a file, or load the sample…'
+      : 'Paste JSON here, or drop a file…';
+  });
 
   const { fromDrop } = useJsonFile();
 

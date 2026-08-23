@@ -11,6 +11,9 @@ importers:
       '@vueuse/core':
         specifier: ^14.3.0
         version: 14.3.0(vue@3.5.35(typescript@6.0.3))
+      apexcharts:
+        specifier: ^6.10.0
+        version: 6.10.0
       motion-v:
         specifier: ^2.2.1
         version: 2.2.1(@vueuse/core@14.3.0(vue@3.5.35(typescript@6.0.3)))(vue@3.5.35(typescript@6.0.3))
@@ -26,6 +29,9 @@ importers:
       vue-router:
         specifier: ^5.1.0
         version: 5.1.0(@vue/compiler-sfc@3.5.35)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.35(typescript@6.0.3)))(vite@8.0.14)(vue@3.5.35(typescript@6.0.3))
+      vue3-apexcharts:
+        specifier: ^1.11.1
+        version: 1.11.1(apexcharts@6.10.0)(vue@3.5.35(typescript@6.0.3))
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -1112,6 +1118,13 @@ packages:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
 
+  apex-commons@0.5.0:
+    resolution: {integrity: sha512-xz83SgPREE1wGtoflvxjwJtcjzl5bKTz2/bDxWCZNL6QVjUNE47kMg/1Zqt0bSh6eOnmFCWlTDc3RU8o85N+wg==}
+
+  apexcharts@6.10.0:
+    resolution: {integrity: sha512-XkDW9pb5L5jrjox86Q20gR2w6YnU4hUpv+FjL1eKtYKQGtyTUSsnFeuUE8wVDz8hNNHbOEx7Sl9cjfCmhB3NVw==}
+    engines: {node: ^20.19.0 || ^22.12.0 || >=24.0.0}
+
   assertion-error@2.0.1:
     resolution: {integrity: sha512-Izi8RQcffqCeNVgFigKli1ssklIbpHnCYc6AknXGYoB6grJqyeby7jv12JUQgmTAnIDnbck1uxksT4dzN3PWBA==}
     engines: {node: '>=12'}
@@ -1974,6 +1987,12 @@ packages:
     resolution: {integrity: sha512-3qh3c9VUVysuXynaa4fVZ3ncx3VgD7EPRiQcj+jUVZl5u/TTkD3c27XvSEu3JGJfsJt/vVTVziZ3djiiHtW4cQ==}
     peerDependencies:
       vue: ^3.3.0
+
+  vue3-apexcharts@1.11.1:
+    resolution: {integrity: sha512-MbN3vg8bMG19wc0Lm1HkeQvODgLm56DgpIxtNUO0xpf/JCzYWVGE4jzXp2JISzy2s3Kul1yOxNQUYsLvKQ5L9g==}
+    peerDependencies:
+      apexcharts: '>=5.10.0'
+      vue: '>=3.0.0'
 
   vue@3.5.35:
     resolution: {integrity: sha512-cx89fnr+0kVGHiNFG6y6s0bdjypJRFNZn6x3WPstNdQR1bi1mbB7h4v5IBGTsPJU3nK1+0Iqj3Zf+hZWMieR4Q==}
@@ -2887,6 +2906,12 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.2
 
+  apex-commons@0.5.0: {}
+
+  apexcharts@6.10.0:
+    dependencies:
+      apex-commons: 0.5.0
+
   assertion-error@2.0.1: {}
 
   ast-kit@2.2.0:
@@ -3673,6 +3698,11 @@ snapshots:
 
   vue-virtual-scroller@3.0.4(vue@3.5.35(typescript@6.0.3)):
     dependencies:
+      vue: 3.5.35(typescript@6.0.3)
+
+  vue3-apexcharts@1.11.1(apexcharts@6.10.0)(vue@3.5.35(typescript@6.0.3)):
+    dependencies:
+      apexcharts: 6.10.0
       vue: 3.5.35(typescript@6.0.3)
 
   vue@3.5.35(typescript@6.0.3):
