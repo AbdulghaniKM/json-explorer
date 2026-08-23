@@ -160,7 +160,7 @@
       </template>
 
       <template #b>
-        <div class="flex min-h-0 flex-col gap-3 overflow-y-auto">
+        <div class="flex min-h-0 flex-col gap-3 overflow-y-auto [&>*]:shrink-0">
           <JsonPanel title="Document" icon="icon-[solar--file-text-linear]">
             <dl class="divide-y divide-border/60 font-mono text-xs">
               <div

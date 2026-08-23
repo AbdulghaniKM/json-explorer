@@ -12,4 +12,6 @@ export * from './diff';
 export * from './convert';
 export * from './sample';
 export * from './highlight';
+export * from './openapi';
+export * from './graph';
 export * from './engine';

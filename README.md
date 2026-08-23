@@ -14,6 +14,8 @@ the page.
 | **Compare** `/compare` | Structural diff that ignores key order, with optional array-order-insensitive matching                     |
 | **Analyze** `/analyze` | Characters, lines, raw/minified/gzip size, and charted value-type, nesting-depth and key-frequency counts  |
 | **Convert** `/convert` | TypeScript interfaces, C# classes, .NET DTO records, Zod schema, YAML, CSV and query strings               |
+| **API** `/api`         | Read a Swagger 2 or OpenAPI 3 file: endpoints by method, parameters, request bodies and responses          |
+| **Graph** `/graph`     | Draw the document as a pannable, zoomable node graph laid out from the index                               |
 
 ## Built for large documents
 
@@ -70,11 +72,18 @@ the viewer without hunting for a big file.
 - **Workbench layout** — every tool is one viewport tall with no page scroll: the toolbar stays
   pinned under the header, and the panes carry a divider you can drag (or focus and nudge with the
   arrow keys) to rebalance them. Each split is remembered per tool. Below `lg` the panes stack.
+- **API viewer** — point it at a `swagger.json` or `openapi.json` and it lists every operation with
+  its method, path, parameters, request body and response codes, filtered by method, tag or search.
+  Swagger 2 and OpenAPI 3 both work; `host`/`basePath` and `in: body` are folded into the same shape
+  the newer spec uses.
+- **Graph** — the document as a node-link tree, laid out from the same flat index the explorer uses,
+  so it is iterative and survives documents too deep for a recursive layout. Depth and node budget
+  are capped and the trimming is stated rather than silent.
 - **Search** — matches keys and values, expands the path to each hit, and can hide everything that
   does not match.
 - **Shared workspace** — the document follows you between tools; documents under 500 kB are
   restored from `localStorage` on the next visit.
-- **Keyboard** — `Alt 1–5` switch tools, `Ctrl O` open, `Ctrl S` download, `Ctrl B` beautify,
+- **Keyboard** — `Alt 1–7` switch tools, `Ctrl O` open, `Ctrl S` download, `Ctrl B` beautify,
   `Ctrl M` minify, `/` focus the tree search.
 
 ## Stack
@@ -116,6 +125,8 @@ src/
 │   ├── format.ts          # Escape, unescape, drop-empties, byte formatting
 │   ├── compress.ts        # Streaming gzip size via CompressionStream
 │   ├── highlight.ts       # HTML-escaped tokenizer for the editor overlay
+│   ├── openapi.ts         # Swagger 2 / OpenAPI 3 reader for the API viewer
+│   ├── graph.ts           # Iterative node-link layout built from the index
 │   └── path.ts            # Path formatting and value types for the diff
 ├── workers/json.worker.ts # Thin wrapper that runs the engine off the main thread
 ├── components/json/       # Editor, VirtualTree, LineViewer, DiffTree, Panel, StatCard

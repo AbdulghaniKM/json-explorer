@@ -5,10 +5,12 @@ import type { RouteRecordInfo } from 'vue-router';
 export interface RouteNamedMap {
   '[...pathMatch]': RouteRecordInfo<'[...pathMatch]', '/:pathMatch(.*)*', Record<string, string>, Record<string, string>>;
   'analyze': RouteRecordInfo<'analyze', '/analyze', Record<never, never>, Record<never, never>>;
+  'api': RouteRecordInfo<'api', '/api', Record<never, never>, Record<never, never>>;
   'compare': RouteRecordInfo<'compare', '/compare', Record<never, never>, Record<never, never>>;
   'convert': RouteRecordInfo<'convert', '/convert', Record<never, never>, Record<never, never>>;
   'explore': RouteRecordInfo<'explore', '/explore', Record<never, never>, Record<never, never>>;
   'format': RouteRecordInfo<'format', '/format', Record<never, never>, Record<never, never>>;
+  'graph': RouteRecordInfo<'graph', '/graph', Record<never, never>, Record<never, never>>;
   'index': RouteRecordInfo<'index', '/', Record<never, never>, Record<never, never>>;
 }
 

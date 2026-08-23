@@ -44,7 +44,7 @@
       </template>
 
       <template #b>
-        <div v-if="stats" class="flex min-h-0 flex-col gap-3 overflow-y-auto">
+        <div v-if="stats" class="flex min-h-0 flex-col gap-3 overflow-y-auto [&>*]:shrink-0">
           <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <JsonStatCard
               label="Characters"

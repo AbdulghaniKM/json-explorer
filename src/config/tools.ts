@@ -36,4 +36,16 @@ export const TOOLS: ToolLink[] = [
     icon: 'icon-[solar--refresh-square-linear]',
     description: 'TypeScript, C#, .NET DTOs, Zod, YAML, CSV and query strings',
   },
+  {
+    label: 'API',
+    path: '/api',
+    icon: 'icon-[solar--routing-2-linear]',
+    description: 'Read a Swagger or OpenAPI file: endpoints, parameters and responses',
+  },
+  {
+    label: 'Graph',
+    path: '/graph',
+    icon: 'icon-[solar--share-linear]',
+    description: 'Draw the document as a node graph you can pan, zoom and pick through',
+  },
 ];

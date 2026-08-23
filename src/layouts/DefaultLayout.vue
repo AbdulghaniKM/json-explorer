@@ -299,7 +299,7 @@
 
   const SHORTCUTS = [
     { keys: 'Ctrl K', label: 'Command palette' },
-    { keys: 'Alt 1–5', label: 'Jump to a tool' },
+    { keys: `Alt 1–${TOOLS.length}`, label: 'Jump to a tool' },
     { keys: 'Ctrl O', label: 'Open a file' },
     { keys: 'Ctrl S', label: 'Download JSON' },
     { keys: 'Ctrl B', label: 'Beautify' },
@@ -322,31 +322,24 @@
 
   const isActive = (path: string) => route.path.startsWith(path);
 
+  // Built from TOOLS rather than written out: the list has grown twice, and a hand-written
+  // binding per tool is one more thing to forget the next time it grows.
+  const toolShortcuts = Object.fromEntries(
+    TOOLS.slice(0, 9).map((tool, position) => [
+      `alt+${position + 1}`,
+      () => {
+        router.push(tool.path);
+        return true;
+      },
+    ]),
+  );
+
   useKeyboard({
     'ctrl+k': () => {
       palette.toggle();
       return true;
     },
-    'alt+1': () => {
-      router.push(TOOLS[0].path);
-      return true;
-    },
-    'alt+2': () => {
-      router.push(TOOLS[1].path);
-      return true;
-    },
-    'alt+3': () => {
-      router.push(TOOLS[2].path);
-      return true;
-    },
-    'alt+4': () => {
-      router.push(TOOLS[3].path);
-      return true;
-    },
-    'alt+5': () => {
-      router.push(TOOLS[4].path);
-      return true;
-    },
+    ...toolShortcuts,
   });
 
   watch(
