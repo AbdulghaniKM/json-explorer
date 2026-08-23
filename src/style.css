@@ -140,6 +140,12 @@
   /* One editor height for every tool below `lg`, where panels stack instead of filling the
      viewport. Shared so moving between tools never resizes the document you are reading. */
   --editor-h: 50svh;
+
+  /* The editor's selection band. Styling ::selection at all stops the browser applying its
+     own highlight, so this has to be stated or a selection paints nothing whatsoever. It is
+     translucent because the input layer sits over the drawn lines and would otherwise cover
+     them, and neutral because any hue here reads as a syntax colour. */
+  --selection-bg: rgb(228 228 231 / 0.22);
 }
 
 [data-theme='light'] {
@@ -159,6 +165,8 @@
   --depth-3: #a02a8a;
   --depth-4: #3a4fb8;
   --depth-5: #6b6c75;
+
+  --selection-bg: rgb(17 17 19 / 0.16);
 }
 
 .depth-0 {
@@ -224,6 +232,21 @@
   text-indent: 0;
   pointer-events: none;
   user-select: none;
+}
+
+/*
+ * The input textarea sits over the drawn lines with transparent text. Chrome paints a
+ * selection's text in the selection foreground and ignores that transparency, which would
+ * stack an unstyled copy of the line on top of the syntax-coloured one. Keeping it clear
+ * leaves only the selection band, with the coloured text showing through.
+ *
+ * The background is not optional. Once any author rule matches ::selection the browser stops
+ * supplying its default highlight, so omitting it computes to transparent and a selection
+ * becomes completely invisible — the text is unpainted and so is the band behind it.
+ */
+.code-input::selection {
+  color: transparent;
+  background-color: var(--selection-bg);
 }
 
 .code-line[data-error]::before {

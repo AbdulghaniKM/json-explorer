@@ -43,74 +43,77 @@
     />
 
     <!--
-      One grid row per source line: the line number in the first column, the line's text in the
-      second. This is what makes wrapping work properly. A textarea is a single block, so its
-      wrap points cannot be predicted (the browser also breaks after hyphens and slashes) and a
-      per-line hanging indent is impossible inside one. Here the browser lays out each line as
-      its own block and reports the height, so the number beside it is level by construction
-      rather than by arithmetic, and each cell can hang its own indent. The textarea sits on top
-      as the input surface only, sharing the column width so it wraps exactly the same way.
+      One block per source line, numbered by a CSS counter, with the textarea over them as the
+      input surface only. Two layers means one rule governs everything here: they must wrap in
+      the same places, which is to say their content boxes must be the same width. Padding
+      therefore comes from TEXT_PADDING on both, never from a utility class on one of them —
+      a textarea cannot be asked where it broke a line, so any drift is silent until a
+      selection paints the textarea's copy over the drawn one and puts them visibly out of step.
     -->
     <div
       v-else
       ref="scrollRef"
       class="relative min-h-0 flex-1"
       :class="wrapLines ? 'overflow-x-hidden overflow-y-auto' : 'overflow-auto'"
-      @scroll.passive="onScroll"
     >
-      <div
-        class="code-lines min-h-full py-3"
-        :class="wrapLines ? '' : 'w-max'"
-        :style="{ '--gutter-w': gutterWidth }"
-      >
-        <div
-          v-for="line in gridLines"
-          :key="line.number"
-          class="code-line font-mono text-(length:--code-size) leading-(--code-line)"
-          :class="wrapLines ? 'break-words whitespace-pre-wrap' : 'whitespace-pre'"
-          :data-error="line.number === error?.line ? '' : undefined"
-          :style="line.style"
-        >
-          <span
-            v-for="level in line.guides"
-            :key="level"
-            class="pointer-events-none absolute inset-y-0 w-px opacity-30"
-            :class="`depth-${(level - 1) % 6}`"
-            :style="{
-              insetInlineStart: `calc(${gutterWidth} + 0.75rem + ${(level - 1) * indentUnit}ch)`,
-              backgroundColor: 'currentColor',
-            }"
-            aria-hidden="true"
-          />
-          <span v-if="useHighlight" v-html="line.html" />
-          <template v-else>{{ line.text }}</template>
+      <div class="relative min-h-full" :class="wrapLines ? '' : 'w-max'">
+        <div class="code-lines py-3" :style="{ '--gutter-w': gutterWidth }">
+          <div
+            v-for="line in gridLines"
+            :key="line.number"
+            class="code-line font-mono text-(length:--code-size) leading-(--code-line)"
+            :class="wrapLines ? 'break-words whitespace-pre-wrap' : 'whitespace-pre'"
+            :data-error="line.number === error?.line ? '' : undefined"
+            :style="line.style"
+          >
+            <!--
+              One row tall, not the whole block. A wrapped line only carries its indent on the
+              first row; the rows after it start back at the left edge, so a full-height guide
+              would be drawn straight through their text. Stopping at the first row costs a gap
+              in the ladder beside a wrapped line and buys text nothing is ruled across.
+            -->
+            <span
+              v-for="level in line.guides"
+              :key="level"
+              class="pointer-events-none absolute top-0 h-(--code-line) w-px opacity-30"
+              :class="`depth-${(level - 1) % 6}`"
+              :style="{
+                insetInlineStart: `calc(${gutterWidth} + ${TEXT_PADDING} + ${(level - 1) * indentUnit}ch)`,
+                backgroundColor: 'currentColor',
+              }"
+              aria-hidden="true"
+            />
+            <span v-if="useHighlight" v-html="line.html" />
+            <template v-else>{{ line.text }}</template>
+          </div>
         </div>
+
+        <!-- The gutter's own surface, behind the numbers the counter draws. -->
+        <div
+          class="pointer-events-none absolute inset-y-0 start-0 z-0 hidden border-e border-border bg-muted/30 sm:block"
+          :style="{ width: gutterWidth }"
+          aria-hidden="true"
+        />
+
+        <!-- Transparent text, visible caret: the lines behind it are what the reader sees.
+             `inset-0` of this wrapper, which grows with the content, so the textarea is never
+             shorter than its own text and never scrolls independently of what is drawn. -->
+        <textarea
+          ref="textareaRef"
+          :value="modelValue"
+          :placeholder="placeholderText"
+          :readonly="readonly"
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          :wrap="wrapLines ? 'soft' : 'off'"
+          class="code-input absolute inset-0 h-full w-full resize-none overflow-hidden bg-transparent py-3 font-mono text-(length:--code-size) leading-(--code-line) text-transparent caret-primary outline-none"
+          :class="wrapLines ? 'break-words whitespace-pre-wrap' : 'whitespace-pre'"
+          :style="textareaInset"
+          @input="onInput"
+          @keydown.tab="onTab"
+        />
       </div>
-
-      <!-- The gutter's own surface, behind the numbers the counter draws. -->
-      <div
-        class="pointer-events-none sticky start-0 top-0 z-0 hidden border-e border-border bg-muted/30 sm:block"
-        :style="{ width: gutterWidth, height: '100%', marginBottom: '-100%' }"
-        aria-hidden="true"
-      />
-
-      <!-- Transparent text, visible caret: the grid behind it is what the reader sees. Same
-           width, font and wrapping rules, so the caret lands where the glyph is. -->
-      <textarea
-        ref="textareaRef"
-        :value="modelValue"
-        :placeholder="placeholderText"
-        :readonly="readonly"
-        spellcheck="false"
-        autocomplete="off"
-        autocapitalize="off"
-        :wrap="wrapLines ? 'soft' : 'off'"
-        class="absolute inset-y-0 end-0 w-full resize-none overflow-hidden bg-transparent px-3 py-3 font-mono text-(length:--code-size) leading-(--code-line) text-transparent caret-primary outline-none"
-        :class="wrapLines ? 'break-words whitespace-pre-wrap' : 'whitespace-pre'"
-        :style="textareaInset"
-        @input="onInput"
-        @keydown.tab="onTab"
-      />
     </div>
 
     <div
@@ -179,13 +182,10 @@
 
 <script setup lang="ts">
   import { HIGHLIGHT_LIMIT, countLines, highlightJson, type JsonParseError } from '@/lib/json';
-  import { indentAt } from '@/lib/json/lines';
   import { EDIT_LIMIT } from '@/stores/json.store';
   import { useJsonFile } from '@/composables/useJsonFile';
   import JsonLineViewer from './LineViewer.vue';
   import { showSampleData } from '@/composables/usePreferences';
-  import { useCharWidth } from '@/composables/useCharWidth';
-  import { DENSITY } from '@/config/density';
 
   const props = withDefaults(
     defineProps<{
@@ -223,7 +223,6 @@
 
   const textareaRef = ref<HTMLTextAreaElement | null>(null);
   const scrollRef = ref<HTMLElement | null>(null);
-  const contentRef = ref<HTMLElement | null>(null);
   const viewerRef = ref<InstanceType<typeof JsonLineViewer> | null>(null);
   const dragging = ref(false);
 
@@ -234,41 +233,16 @@
    * viewer, which wraps and indents identically but only builds the rows in sight.
    */
   const GRID_LINE_LIMIT = 4000;
-  /** How far a wrapped row may be pushed in before the indent costs more than it gives. */
-  const MAX_HANG = 12;
+  /**
+   * The gap between the gutter and the text, and between the text and the right edge. Declared
+   * once and applied to both the drawn lines and the textarea over them: the two only wrap
+   * alike while their content boxes are the same width, so this cannot be set twice.
+   */
+  const TEXT_PADDING = '0.75rem';
   /** Characters scanned for the document's indent unit before settling for the default. */
   const SCAN_LIMIT = 100_000;
   /** Past this the bars are noise rather than orientation. */
   const MAX_GUIDES = 40;
-  const codeLine = DENSITY.codeLineHeight;
-  const { charWidth } = useCharWidth();
-  const contentWidth = ref(600);
-  const viewportHeight = ref(400);
-  const scrollTop = ref(0);
-
-  let frame = 0;
-
-  // Coalesced to a frame: the gutter window is recomputed from this, and a scroll event per
-  // wheel notch would rebuild it several times before the browser paints once.
-  const onScroll = () => {
-    if (frame) return;
-    frame = requestAnimationFrame(() => {
-      frame = 0;
-      scrollTop.value = scrollRef.value?.scrollTop ?? 0;
-    });
-  };
-
-  onUnmounted(() => {
-    if (frame) cancelAnimationFrame(frame);
-  });
-
-  useResizeObserver(contentRef, ([entry]) => {
-    contentWidth.value = entry.contentRect.width;
-  });
-
-  useResizeObserver(scrollRef, ([entry]) => {
-    viewportHeight.value = entry.contentRect.height;
-  });
 
   const editable = computed(() => props.modelValue.length <= EDIT_LIMIT);
 
@@ -323,7 +297,6 @@
     const text = props.modelValue;
     const unit = indentUnit.value;
     const highlight = useHighlight.value;
-    const hangs = wrapLines.value;
     const gutter = gutterWidth.value;
 
     const out: Array<{
@@ -343,21 +316,25 @@
       while (width < raw.length && (raw.charCodeAt(width) === 32 || raw.charCodeAt(width) === 9)) {
         width++;
       }
-      const indent = Math.min(width, MAX_HANG);
       out.push({
         number: ++number,
         text: raw || ' ',
         html: highlight ? highlightJson(raw) || '&nbsp;' : '',
         guides: Math.min(Math.floor(width / unit), MAX_GUIDES),
-        // A cell is its own block, so a negative first-line indent over matching padding is a
-        // real hanging indent here — the thing a single-block textarea cannot express.
-        style:
-          hangs && indent > 0
-            ? {
-                paddingInlineStart: `calc(${gutter} + 0.75rem + ${indent}ch)`,
-                textIndent: `-${indent}ch`,
-              }
-            : { paddingInlineStart: `calc(${gutter} + 0.75rem)` },
+        // Both paddings, and both matching the textarea's, because the two layers have to
+        // wrap in exactly the same places. A line breaks where its content box runs out, so
+        // a single millimetre of difference puts the layers a word apart on every long line.
+        // It stays invisible until you select — Chrome paints selected text in the
+        // selection's own colour and ignores `color: transparent`, so the textarea's copy
+        // appears over the drawn one, offset by however far the wrap points have drifted.
+        //
+        // This is also why there is no hanging indent here. A per-line hang would narrow the
+        // rows after the first, and a textarea is one block that cannot hang with them. The
+        // read-only viewer has no input layer to keep in step, so it does hang.
+        style: {
+          paddingInlineStart: `calc(${gutter} + ${TEXT_PADDING})`,
+          paddingInlineEnd: TEXT_PADDING,
+        },
       });
     };
 
@@ -373,13 +350,11 @@
 
   /** Puts the textarea's text over the same column the lines occupy, past the gutter. */
   const textareaInset = computed(() => ({
-    paddingInlineStart: `calc(${gutterWidth.value} + 0.75rem)`,
+    paddingInlineStart: `calc(${gutterWidth.value} + ${TEXT_PADDING})`,
+    paddingInlineEnd: TEXT_PADDING,
   }));
 
   const useHighlight = computed(() => editable.value && props.modelValue.length <= HIGHLIGHT_LIMIT);
-  const highlighted = computed(() =>
-    useHighlight.value ? `${highlightJson(props.modelValue)}\n` : '',
-  );
 
   const compact = (value: number) => {
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
@@ -437,10 +412,10 @@
     target.focus();
     target.setSelectionRange(offset, offset);
 
-    // Scroll to the row the browser actually put the line on, rather than a computed one:
-    // the grid knows where it is, and a wrapped line above would throw any calculation off.
+    // Scroll to the block the browser actually put the line on, rather than a computed offset:
+    // every wrapped line above it adds rows that no arithmetic here would know about.
     void nextTick(() => {
-      const row = scrollRef.value?.querySelectorAll('.grid > div')[(position.line - 1) * 2];
+      const row = scrollRef.value?.querySelectorAll('.code-line')[position.line - 1];
       row?.scrollIntoView({ block: 'center' });
     });
   };
