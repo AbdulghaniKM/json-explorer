@@ -51,16 +51,20 @@ export const SAMPLE_JSON_ALT = `{
   "meta": { "channel": "web", "coupon": "SPRING10", "attempts": 3 }
 }`;
 
-export const SAMPLE_MESSY = `{
+export const SAMPLE_MESSY = `Here is the order you asked for:
+
+\`\`\`json
+{
   // an order that needs a little help
   id: 'ord_9f2c41',
-  status: "shipped",
-  paid: True,
+  status: “shipped”,
+  paid: True
   customer: { name: 'Amina Yusuf', vip: False, note: None, },
   items: [
-    { sku: 'KB-8801', qty: 1, price: 89.99, },
+    { sku: 'KB-8801', qty: 1, price: 89.99, }
     { sku: 'MS-2210', qty: 2, price: 24.5 },
   ],
   /* totals are recalculated server-side */
-  totals: { grand: 219.59 },
-}`;
+  totals: { subtotal: 007, shipping: .5, tax = NaN, grand: 219.59 },
+  invoice: https://example.com/i/9f2c41
+\`\`\``;

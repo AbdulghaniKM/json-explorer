@@ -62,8 +62,11 @@ the viewer without hunting for a big file.
 - **Editor** — line-number gutter, syntax highlighting, drag-and-drop file loading, and syntax
   errors reported as `line:column` with click-to-jump. Past 3 MB it switches to a read-only
   virtualized viewer (a `<textarea>` cannot hold tens of megabytes) — every tool still works.
-- **Repair** — one click fixes comments, single quotes, unquoted keys, trailing commas, smart
-  quotes, `True`/`False`/`None`, `NaN`/`undefined`, unclosed brackets, and newline-delimited JSON.
+- **Repair** — a tolerant parser rebuilds the document instead of patching characters: missing
+  commas, colons, and opening or closing brackets; single, smart or backtick quotes; bare keys and
+  values; comments; `True`/`False`/`None`, `NaN`/`undefined`; malformed numbers (`.5`, `007`,
+  `0x1F`); unterminated strings; markdown code fences and chat prose; escaped documents from logs;
+  and several documents in one paste. It reports every correction it made.
 - **Search** — matches keys and values, expands the path to each hit, and can hide everything that
   does not match.
 - **Shared workspace** — the document follows you between tools; documents under 500 kB are
@@ -104,7 +107,7 @@ src/
 │   ├── emit.ts            # Beautify / minify / sort straight from the source text
 │   ├── engine.ts          # Worker request handlers and the size caps for each tool
 │   ├── parse.ts           # JSON.parse wrapper with line/column error positions
-│   ├── repair.ts          # Tolerant scanner for malformed JSON + NDJSON
+│   ├── repair.ts          # Tolerant parser that rebuilds malformed JSON + NDJSON
 │   ├── diff.ts            # Semantic diff with a node budget
 │   ├── convert.ts         # TypeScript, C#, .NET DTO, Zod, YAML, CSV, query string emitters
 │   ├── format.ts          # Escape, unescape, drop-empties, byte formatting

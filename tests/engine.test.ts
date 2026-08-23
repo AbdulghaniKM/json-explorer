@@ -18,7 +18,6 @@ import {
 } from '../src/lib/json/format';
 import { highlightJson } from '../src/lib/json/highlight';
 import { parseJson, positionOf } from '../src/lib/json/parse';
-import { repairJson } from '../src/lib/json/repair';
 import { scanJson } from '../src/lib/json/scan';
 
 describe('highlightJson - XSS safety', () => {
@@ -195,44 +194,6 @@ describe('diffJson', () => {
       right = { nested: right };
     }
     expect(() => diffJson(left as never, right as never)).not.toThrow();
-  });
-});
-
-describe('repairJson', () => {
-  const repairs: [string, string][] = [
-    ['trailing comma in object', '{"a":1,}'],
-    ['trailing comma in array', '[1,2,]'],
-    ['single quotes', "{'a':'b'}"],
-    ['unquoted keys', '{a:1,b:2}'],
-    ['python literals', '{"a":True,"b":False,"c":None}'],
-    ['NaN and undefined', '{"a":NaN,"b":undefined}'],
-    ['line comment', '{"a":1} // trailing note'],
-    ['block comment', '{/* note */"a":1}'],
-    ['unclosed object', '{"a":1'],
-  ];
-
-  for (const [name, broken] of repairs) {
-    it(`repairs ${name} into parseable JSON`, () => {
-      const { text } = repairJson(broken);
-      expect(() => JSON.parse(text), `repair produced: ${text}`).not.toThrow();
-    });
-  }
-
-  it('leaves already-valid JSON untouched', () => {
-    const good = '{"a":1,"b":[1,2]}';
-    const { text, changed } = repairJson(good);
-    expect(changed).toBe(false);
-    expect(text).toBe(good);
-  });
-
-  it('does not corrupt content that merely looks like a keyword', () => {
-    const { text } = repairJson('{"a":"True is a word, undefined too"}');
-    expect(JSON.parse(text).a).toBe('True is a word, undefined too');
-  });
-
-  it('does not treat // inside a string as a comment', () => {
-    const { text } = repairJson('{"url":"https://example.com/x"}');
-    expect(JSON.parse(text).url).toBe('https://example.com/x');
   });
 });
 

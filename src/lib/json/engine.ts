@@ -6,7 +6,7 @@ import { scanJson } from './scan';
 import { emitJson, indentText } from './emit';
 import { parseJson } from './parse';
 import { escapeToJsonString, removeEmptyValues, unescapeJsonString } from './format';
-import { parseNdjson, repairJson } from './repair';
+import { parseNdjson, repairJson, type RepairResult } from './repair';
 import { diffJson } from './diff';
 import {
   csharpFromShape,
@@ -145,6 +145,18 @@ export const engineFailure = (request: EngineRequest, message: string): EngineRe
   return { id: request.id, kind: request.kind, ok: false, message };
 };
 
+const LISTED_FIXES = 3;
+
+/** Names what the repair actually corrected, so the toast is evidence rather than a claim. */
+export const repairNote = ({ changed, fixes }: RepairResult): string => {
+  if (!changed) return 'Already valid — reformatted';
+  if (!fixes.length) return 'Repaired and reformatted';
+
+  const listed = fixes.slice(0, LISTED_FIXES).join(', ');
+  const remaining = fixes.length - LISTED_FIXES;
+  return remaining > 0 ? `Repaired — ${listed} and ${remaining} more` : `Repaired — ${listed}`;
+};
+
 export const failureMessageFor = (error: unknown): string =>
   error instanceof RangeError
     ? 'This document is too deeply nested or too large for this operation.'
@@ -209,7 +221,7 @@ const transform = (request: Extract<EngineRequest, { kind: 'transform' }>): Engi
           kind: 'transform',
           ok: true,
           text: emitJson(repaired.text, scan.index, { indent: indentText(indent) }),
-          note: 'Repaired and reformatted',
+          note: repairNote(repaired),
         };
       }
     }

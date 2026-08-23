@@ -19,7 +19,7 @@
           <h1
             class="mt-4 flex flex-col gap-1 text-3xl leading-[1.1] font-bold tracking-tight text-foreground sm:text-5xl"
           >
-            <LandingMatrixText text="Read 191 MB of JSON" />
+            <LandingMatrixText text="JSON Tools" />
             <LandingMatrixText
               text="without leaving the tab."
               class="text-primary"

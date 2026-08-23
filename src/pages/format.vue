@@ -38,7 +38,7 @@
         size="sm"
         icon="icon-[solar--broom-linear]"
         label="Repair"
-        tooltip="Fix comments, single quotes, trailing commas, unquoted keys"
+        tooltip="Fix quotes, commas, colons, brackets, comments and stray text"
         :loading="store.busy === 'repair'"
         @click="run('repair')"
       />
@@ -177,10 +177,13 @@
         <JsonPanel title="Messy input?" icon="icon-[solar--broom-linear]">
           <div class="space-y-3 p-3 text-sm text-muted-foreground">
             <p>
-              Repair handles comments, single quotes, unquoted keys, trailing commas, Python-style
+              Repair reads the document the way a parser would and rebuilds it: missing commas,
+              colons and brackets, single or smart quotes, bare keys and values, comments,
+              Python-style
               <code class="font-mono text-foreground">True/False/None</code>
-              , unclosed brackets and newline-delimited JSON.
+              , malformed numbers, chat prose and code fences, and several documents in one paste.
             </p>
+            <p>It reports what it changed, so nothing is corrected silently.</p>
             <UiAppButton
               variant="surface"
               size="sm"
