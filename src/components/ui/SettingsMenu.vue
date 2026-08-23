@@ -8,16 +8,15 @@
       @click="open = !open"
     />
 
-    <div
-      v-if="open"
-      class="absolute end-0 z-40 mt-2 w-72 rounded-xl border border-border bg-surface p-3 shadow-lg"
-    >
-      <p class="mb-2.5 text-xs font-semibold tracking-wider text-text-muted uppercase">Settings</p>
+    <div v-if="open" class="absolute end-0 z-40 mt-2 w-72 border border-border bg-popover p-3">
+      <p class="mb-2.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+        Settings
+      </p>
 
       <div class="flex items-start gap-3">
         <div class="min-w-0 flex-1">
-          <p class="text-xs font-medium text-text">Sample document</p>
-          <p class="mt-0.5 text-[11px] leading-snug text-text-muted">
+          <p class="text-xs font-medium text-foreground">Sample document</p>
+          <p class="mt-0.5 text-[11px] leading-snug text-muted-foreground">
             Start with a demo order and show the Sample buttons on every tool.
           </p>
         </div>
@@ -26,8 +25,8 @@
 
       <div class="mt-3 flex items-start gap-3 border-t border-border/60 pt-3">
         <div class="min-w-0 flex-1">
-          <p class="text-xs font-medium text-text">Sampled markers</p>
-          <p class="mt-0.5 text-[11px] leading-snug text-text-muted">
+          <p class="text-xs font-medium text-foreground">Sampled markers</p>
+          <p class="mt-0.5 text-[11px] leading-snug text-muted-foreground">
             Flag the statistics that stop counting exactly on very large documents.
           </p>
         </div>

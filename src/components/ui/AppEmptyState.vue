@@ -3,15 +3,15 @@
     <slot name="icon">
       <div
         v-if="icon"
-        class="mb-4 flex size-16 items-center justify-center rounded-2xl"
+        class="mb-4 flex size-16 items-center justify-center"
         :class="iconContainerClass"
       >
         <UiAppIcon :name="icon" :size="2" :class="iconColorClass" />
       </div>
     </slot>
 
-    <h2 v-if="title" class="mb-1 text-lg font-semibold text-text">{{ title }}</h2>
-    <p v-if="description" class="mb-6 max-w-md text-sm text-text-secondary">{{ description }}</p>
+    <h2 v-if="title" class="mb-1 text-lg font-semibold text-foreground">{{ title }}</h2>
+    <p v-if="description" class="mb-6 max-w-md text-sm text-muted-foreground">{{ description }}</p>
 
     <div v-if="$slots.default" class="flex items-center gap-2">
       <slot />
@@ -46,7 +46,7 @@
   const iconColorClass = computed(
     () =>
       ({
-        neutral: 'text-text-secondary',
+        neutral: 'text-muted-foreground',
         primary: 'text-primary',
         danger: 'text-error',
         warning: 'text-warning',

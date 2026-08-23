@@ -2,8 +2,8 @@
   <AppTooltip v-if="tooltip" :content="tooltip" :placement="tooltipPlacement">
     <button
       :type="type"
-      class="btn-base inline-flex cursor-pointer items-center justify-center font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-      :class="[sizeClass, variantClass, gapClass, roundedClass, fullWidth && 'w-full']"
+      class="btn-base inline-flex cursor-pointer items-center justify-center border font-mono font-medium tracking-tight whitespace-nowrap transition-none focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
+      :class="[sizeClass, variantClass, gapClass, fullWidth && 'w-full']"
       :disabled="disabled || loading"
       :aria-busy="loading || undefined"
       v-bind="$attrs"
@@ -18,8 +18,8 @@
   <button
     v-else
     :type="type"
-    class="btn-base inline-flex cursor-pointer items-center justify-center font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
-    :class="[sizeClass, variantClass, gapClass, roundedClass, fullWidth && 'w-full']"
+    class="btn-base inline-flex cursor-pointer items-center justify-center border font-mono font-medium tracking-tight whitespace-nowrap transition-none focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-40"
+    :class="[sizeClass, variantClass, gapClass, fullWidth && 'w-full']"
     :disabled="disabled || loading"
     :aria-busy="loading || undefined"
     v-bind="$attrs"
@@ -84,16 +84,16 @@
     if (props.iconOnly && !props.fullWidth) {
       return {
         xs: 'size-6 text-xs',
-        sm: 'size-8 text-sm',
-        md: 'size-10 text-sm',
-        lg: 'size-12 text-base',
+        sm: 'size-(--control-h) text-sm',
+        md: 'size-9 text-sm',
+        lg: 'size-11 text-base',
       }[props.size];
     }
     return {
-      xs: 'h-7 px-2.5 text-xs',
-      sm: 'h-8 px-3 text-sm',
-      md: 'h-10 px-4 text-sm',
-      lg: 'h-12 px-6 text-base',
+      xs: 'h-6 px-2 text-[11px]',
+      sm: 'h-(--control-h) px-2.5 text-xs',
+      md: 'h-9 px-3.5 text-sm',
+      lg: 'h-11 px-5 text-sm',
     }[props.size];
   });
 
@@ -102,40 +102,32 @@
     return { xs: 'gap-1', sm: 'gap-1.5', md: 'gap-2', lg: 'gap-2.5' }[props.size];
   });
 
-  const roundedClass = computed(() => {
-    if (props.iconOnly) return 'rounded-lg';
-    return {
-      xs: 'rounded-md',
-      sm: 'rounded-lg',
-      md: 'rounded-lg',
-      lg: 'rounded-xl',
-    }[props.size];
-  });
-
   const variantClass = computed(
     () =>
       ({
-        primary: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md',
-        accent: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md',
-        secondary: 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
-        ghost: 'text-text-muted hover:bg-muted hover:text-text',
-        muted: 'bg-muted/50 text-text-muted hover:bg-muted hover:text-text',
-        danger: 'bg-error/10 text-error hover:bg-error/20',
-        success: 'bg-success/10 text-success hover:bg-success/20',
-        surface:
-          'bg-surface text-primary border border-border shadow-sm hover:bg-muted hover:shadow',
-        outline: 'border border-border bg-transparent text-text hover:bg-muted',
+        primary: 'border-primary bg-primary text-primary-foreground hover:bg-primary/85',
+        accent: 'border-primary bg-primary text-primary-foreground hover:bg-primary/85',
+        secondary: 'border-border bg-secondary text-secondary-foreground hover:border-input',
+        ghost: 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
+        muted: 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
+        danger: 'border-error/40 text-error hover:bg-error/10',
+        success: 'border-success/40 text-success hover:bg-success/10',
+        surface: 'border-border bg-card text-foreground hover:border-input hover:text-primary',
+        outline: 'border-border bg-transparent text-foreground hover:border-input',
       })[props.variant],
   );
 
-  const iconSize = computed(() => ({ xs: 0.75, sm: 1, md: 1.125, lg: 1.25 })[props.size]);
+  const iconSize = computed(() => ({ xs: 0.7, sm: 0.9, md: 1, lg: 1.125 })[props.size]);
   const spinnerSize = computed(
     () => (({ xs: 'xs', sm: 'xs', md: 'sm', lg: 'sm' }) as const)[props.size],
   );
 </script>
 
 <style scoped>
+  /* An instant inversion, not a spring. Nothing in this system eases. */
   .btn-base:not(:disabled):active {
-    transform: scale(0.97);
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-primary-foreground);
   }
 </style>

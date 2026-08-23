@@ -2,32 +2,30 @@
   <div class="flex min-h-screen flex-col bg-background">
     <a
       href="#main"
-      class="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+      class="focus: sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
     >
       Skip to content
     </a>
 
-    <header class="sticky top-0 z-30 border-b border-border/60 bg-surface/80 backdrop-blur-xl">
-      <div class="mx-auto flex h-14 w-full max-w-[1400px] items-center gap-3 px-4">
+    <header class="sticky top-0 z-30 border-b border-border bg-card">
+      <div class="mx-auto flex h-(--header-h) w-full max-w-[1400px] items-center gap-3 px-3">
         <RouterLink to="/" class="flex shrink-0 items-center gap-2">
-          <span
-            class="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
-          >
+          <span class="flex size-8 items-center justify-center bg-primary text-primary-foreground">
             <UiAppIcon name="icon-[solar--code-square-linear]" :size="1.125" />
           </span>
-          <span class="text-sm font-semibold text-text sm:text-base">{{ appName }}</span>
+          <span class="text-sm font-semibold text-foreground sm:text-base">{{ appName }}</span>
         </RouterLink>
 
-        <nav class="ms-2 hidden items-center gap-1 md:flex">
+        <nav class="ms-3 hidden items-stretch self-stretch md:flex">
           <RouterLink
             v-for="tool in TOOLS"
             :key="tool.path"
             :to="tool.path"
-            class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+            class="flex h-(--header-h) items-center gap-1.5 border-b-2 px-3 font-mono text-xs tracking-tight transition-none"
             :class="
               isActive(tool.path)
-                ? 'bg-primary/10 text-primary'
-                : 'text-text-muted hover:bg-muted hover:text-text'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
             "
           >
             <UiAppIcon :name="tool.icon" :size="0.95" />
@@ -54,15 +52,15 @@
             />
             <div
               v-if="showShortcuts"
-              class="absolute end-0 z-40 mt-2 w-64 rounded-xl border border-border bg-surface p-3 shadow-lg"
+              class="absolute end-0 z-40 mt-2 w-64 border border-border bg-popover p-3"
             >
-              <p class="mb-2 text-xs font-semibold tracking-wider text-text-muted uppercase">
+              <p class="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                 Shortcuts
               </p>
-              <ul class="space-y-1.5 text-xs text-text-muted">
+              <ul class="space-y-1.5 text-xs text-muted-foreground">
                 <li v-for="item in SHORTCUTS" :key="item.keys" class="flex items-center gap-2">
                   <kbd
-                    class="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-text"
+                    class="border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground"
                   >
                     {{ item.keys }}
                   </kbd>
@@ -76,16 +74,16 @@
         </div>
       </div>
 
-      <nav class="flex gap-1 overflow-x-auto border-t border-border/60 px-3 py-1.5 md:hidden">
+      <nav class="flex overflow-x-auto border-t border-border md:hidden">
         <RouterLink
           v-for="tool in TOOLS"
           :key="tool.path"
           :to="tool.path"
-          class="flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+          class="flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 font-mono text-[11px] transition-none"
           :class="
             isActive(tool.path)
-              ? 'bg-primary/10 text-primary'
-              : 'text-text-muted hover:bg-muted hover:text-text'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
           "
         >
           <UiAppIcon :name="tool.icon" :size="0.9" />
@@ -94,21 +92,38 @@
       </nav>
     </header>
 
-    <main id="main" class="mx-auto w-full max-w-[1400px] flex-1 px-4 py-4">
+    <main id="main" class="mx-auto w-full max-w-[1400px] flex-1 px-3 py-3">
       <slot />
     </main>
 
     <UiCommandPalette />
 
-    <footer class="border-t border-border/60 px-4 py-4">
+    <footer class="sticky bottom-0 z-20 border-t border-border bg-card">
       <div
-        class="mx-auto flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-2 text-xs text-text-muted"
+        class="mx-auto flex w-full max-w-[1400px] items-center gap-3 overflow-x-auto px-3 py-1 font-mono text-[11px] whitespace-nowrap text-muted-foreground"
       >
-        <span class="flex items-center gap-1.5">
-          <UiAppIcon name="icon-[solar--shield-check-linear]" :size="0.9" />
-          Everything runs in your browser. Nothing is uploaded.
+        <span
+          class="flex shrink-0 items-center gap-1.5"
+          :class="status.tone"
+          :title="store.error?.message"
+        >
+          <span aria-hidden="true">{{ status.glyph }}</span>
+          {{ status.label }}
         </span>
-        <span>Vue 3 · Tailwind v4 · TypeScript</span>
+
+        <template v-if="store.stats">
+          <span class="text-border" aria-hidden="true">│</span>
+          <span class="shrink-0 tabular-nums">{{ nodeLabel }} nodes</span>
+          <span class="text-border" aria-hidden="true">│</span>
+          <span class="shrink-0 tabular-nums">{{ formatBytes(store.stats.bytes) }}</span>
+          <span class="text-border" aria-hidden="true">│</span>
+          <span class="shrink-0 tabular-nums">depth {{ store.stats.depth }}</span>
+        </template>
+
+        <span class="ms-auto flex shrink-0 items-center gap-1.5">
+          <UiAppIcon name="icon-[solar--shield-check-linear]" :size="0.8" />
+          local only
+        </span>
       </div>
     </footer>
   </div>
@@ -119,6 +134,7 @@
   import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
   import { usePreferences } from '@/composables/usePreferences';
   import { useTheme } from '@/composables/useTheme';
+  import { formatBytes } from '@/lib/json';
 
   const { appName } = useAppConfig();
   const route = useRoute();
@@ -285,6 +301,15 @@
     { keys: 'Ctrl M', label: 'Minify' },
     { keys: '/', label: 'Search the tree' },
   ];
+
+  const status = computed(() => {
+    if (store.scanning) return { glyph: '◐', label: 'indexing', tone: 'text-info' };
+    if (store.isEmpty) return { glyph: '○', label: 'empty', tone: 'text-muted-foreground' };
+    if (store.isValid) return { glyph: '●', label: 'valid', tone: 'text-success' };
+    return { glyph: '✕', label: 'invalid', tone: 'text-error' };
+  });
+
+  const nodeLabel = computed(() => (store.stats?.totalNodes ?? 0).toLocaleString('en-US'));
 
   const isActive = (path: string) =>
     path === '/' ? route.path === '/' : route.path.startsWith(path);

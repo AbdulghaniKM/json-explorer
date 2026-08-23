@@ -1,7 +1,7 @@
 <template>
   <div v-if="visible">
     <div
-      class="group flex items-start gap-1.5 rounded-md py-[3px] pe-2 font-mono text-(length:--code-size) leading-6"
+      class="group flex items-start gap-1.5 py-[3px] pe-2 font-mono text-(length:--code-size) leading-6"
       :class="rowClass"
       :style="{ paddingInlineStart: padStart }"
       @click="toggle"
@@ -18,7 +18,7 @@
       <button
         v-if="hasChildren"
         type="button"
-        class="mt-[3px] flex size-4 shrink-0 items-center justify-center rounded text-text-muted hover:bg-border hover:text-text"
+        class="mt-[3px] flex size-4 shrink-0 items-center justify-center text-muted-foreground hover:bg-border hover:text-foreground"
         :aria-label="expanded ? 'Collapse' : 'Expand'"
         @click.stop="toggle"
       >
@@ -36,14 +36,14 @@
       <span class="w-4 shrink-0 text-center font-semibold" :class="markerClass">{{ marker }}</span>
 
       <span v-if="node.key !== null" class="shrink-0">
-        <span :class="typeof node.key === 'number' ? 'text-text-muted' : 'tok-key'">
+        <span :class="typeof node.key === 'number' ? 'text-muted-foreground' : 'tok-key'">
           {{ typeof node.key === 'number' ? node.key : `"${node.key}"` }}
         </span>
         <span class="tok-punct">:</span>
       </span>
 
       <template v-if="isContainer">
-        <span class="text-text-muted">
+        <span class="text-muted-foreground">
           {{ node.leftType === 'array' ? '[…]' : '{…}' }}
           <span v-if="summaryLabel" class="text-[11px]">{{ summaryLabel }}</span>
         </span>
@@ -63,7 +63,7 @@
           v-if="node.kind === 'changed'"
           name="icon-[solar--arrow-right-linear]"
           :size="0.75"
-          class="mt-[6px] shrink-0 text-text-muted"
+          class="mt-[6px] shrink-0 text-muted-foreground"
         />
         <span v-if="node.kind !== 'removed'" class="min-w-0 truncate" :class="rightClass">
           {{ rightDisplay }}
@@ -72,7 +72,7 @@
 
       <button
         type="button"
-        class="ms-auto shrink-0 rounded p-1 text-text-muted opacity-0 transition-opacity group-hover:opacity-100"
+        class="ms-auto shrink-0 p-1 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
         title="Copy path"
         @click.stop="copyPath"
       >
@@ -91,7 +91,7 @@
       <button
         v-if="hiddenChildren > 0"
         type="button"
-        class="rounded-md py-[3px] pe-2 text-start font-mono text-(length:--code-size) leading-6 text-text-muted underline-offset-2 hover:text-text hover:underline"
+        class="py-[3px] pe-2 text-start font-mono text-(length:--code-size) leading-6 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         :style="{ paddingInlineStart: childPadStart }"
         @click.stop="showMore"
       >
@@ -205,7 +205,7 @@
       number: 'tok-num',
       boolean: 'tok-bool',
       null: 'tok-null',
-    })[type ?? ''] ?? 'text-text';
+    })[type ?? ''] ?? 'text-foreground';
 
   const leftClass = computed(() => typeClass(props.node.leftType));
   const rightClass = computed(() =>

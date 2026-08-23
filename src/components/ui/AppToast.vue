@@ -11,7 +11,7 @@
         <motion.div
           v-for="toast in toasts"
           :key="toast.id"
-          class="pointer-events-auto relative w-full overflow-hidden rounded-xl shadow-lg sm:max-w-sm"
+          class="pointer-events-auto relative w-full overflow-hidden sm:max-w-sm"
           :class="containerClass(toast.type)"
           role="alert"
           :initial="motionConfig.initial"
@@ -25,7 +25,7 @@
         >
           <div class="flex items-start gap-3 px-4 py-3">
             <span
-              class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full"
+              class="mt-0.5 flex size-5 shrink-0 items-center justify-center"
               :class="iconBgClass(toast.type)"
             >
               <AppIcon :name="toastIcon(toast.type)" :size="0.75" />
@@ -38,7 +38,7 @@
             </div>
             <button
               type="button"
-              class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-lg opacity-60 transition-opacity hover:opacity-100"
+              class="mt-0.5 flex size-6 shrink-0 items-center justify-center opacity-60 transition-opacity hover:opacity-100"
               aria-label="Dismiss notification"
               @click="removeToast(toast.id)"
             >
@@ -108,10 +108,10 @@
 
   const containerClass = (type: Toast['type']) =>
     ({
-      success: 'bg-surface border border-success/20 text-text',
-      error: 'bg-surface border border-error/20 text-text',
-      warning: 'bg-surface border border-warning/20 text-text',
-      info: 'bg-surface border border-info/20 text-text',
+      success: 'bg-card border border-success/20 text-foreground',
+      error: 'bg-card border border-error/20 text-foreground',
+      warning: 'bg-card border border-warning/20 text-foreground',
+      info: 'bg-card border border-info/20 text-foreground',
     })[type];
 
   const iconBgClass = (type: Toast['type']) =>

@@ -5,21 +5,21 @@
 
       <label
         v-if="currentTarget.usesRootName"
-        class="flex items-center gap-2 text-xs text-text-muted"
+        class="flex items-center gap-2 text-xs text-muted-foreground"
       >
         Root name
         <input
           v-model="rootName"
           type="text"
-          class="h-8 w-32 rounded-lg border border-border bg-surface px-2 text-sm text-text outline-none focus:border-primary"
+          class="h-8 w-32 border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-primary"
         />
       </label>
 
-      <label v-if="active === 'csv'" class="flex items-center gap-2 text-xs text-text-muted">
+      <label v-if="active === 'csv'" class="flex items-center gap-2 text-xs text-muted-foreground">
         Delimiter
         <select
           v-model="delimiter"
-          class="h-8 rounded-lg border border-border bg-surface px-2 text-sm text-text outline-none focus:border-primary"
+          class="h-8 border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-primary"
         >
           <option value=",">Comma</option>
           <option value=";">Semicolon</option>
@@ -53,7 +53,7 @@
       <JsonEditor
         v-model="store.source"
         label="JSON"
-        class="h-[40vh] lg:h-[calc(100vh-13rem)]"
+        class="h-[40vh] lg:h-(--panel-h)"
         :error="store.error"
         :valid="store.isValid"
         :lines="store.stats?.lines ?? null"
@@ -81,13 +81,13 @@
         :title="currentTarget.label"
         :icon="currentTarget.icon"
         :badge="truncated ? 'preview truncated' : undefined"
-        class="h-[40vh] lg:h-[calc(100vh-13rem)]"
+        class="h-[40vh] lg:h-(--panel-h)"
       >
         <JsonOutput :text="preview" :placeholder="placeholder" />
       </JsonPanel>
     </div>
 
-    <p class="text-xs text-text-muted">{{ currentTarget.hint }}</p>
+    <p class="text-xs text-muted-foreground">{{ currentTarget.hint }}</p>
   </div>
 </template>
 
@@ -138,7 +138,7 @@
       size.value = 0;
       failure.value = '';
       // Clear the flag too: an earlier run may still be in flight, and its stale-token
-      // return would otherwise leave the "Converting…" badge showing forever.
+      // return would otherwise leave the"Converting…" badge showing forever.
       converting.value = false;
       return;
     }

@@ -32,7 +32,7 @@
     | 'secondary'
     | 'accent'
     | 'text'
-    | 'text-text-muted'
+    | 'text-muted-foreground'
     | 'success'
     | 'warning'
     | 'error'
@@ -181,10 +181,10 @@
 
     const colorMap: Record<string, string> = {
       primary: 'text-accent',
-      secondary: 'text-text-muted',
+      secondary: 'text-muted-foreground',
       accent: 'text-accent',
-      text: 'text-text',
-      'text-text-muted': 'text-text-muted',
+      text: 'text-foreground',
+      'text-muted-foreground': 'text-muted-foreground',
       success: 'text-success',
       warning: 'text-warning',
       error: 'text-error',
@@ -466,7 +466,7 @@
         'secondary',
         'accent',
         'text',
-        'text-text-muted',
+        'text-muted-foreground',
         'success',
         'warning',
         'error',

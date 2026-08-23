@@ -28,7 +28,7 @@
       <JsonEditor
         v-model="store.source"
         label="Source"
-        class="h-[30vh] lg:h-[calc(100vh-13rem)]"
+        class="h-[30vh] lg:h-(--panel-h)"
         :error="store.error"
         :valid="store.isValid"
         :lines="stats?.lines ?? null"
@@ -83,9 +83,13 @@
                   :key="row.type"
                   class="flex items-center gap-1.5 text-[11px]"
                 >
-                  <span class="text-text-muted capitalize">{{ row.type }}</span>
-                  <span class="font-mono text-text tabular-nums">{{ format(row.count) }}</span>
-                  <span class="font-mono text-text-muted tabular-nums">{{ row.percent }}%</span>
+                  <span class="text-muted-foreground capitalize">{{ row.type }}</span>
+                  <span class="font-mono text-foreground tabular-nums">
+                    {{ format(row.count) }}
+                  </span>
+                  <span class="font-mono text-muted-foreground tabular-nums">
+                    {{ row.percent }}%
+                  </span>
                 </li>
               </ul>
             </div>
@@ -104,11 +108,13 @@
                 :series="depthChart.series"
                 :formatter="format"
               />
-              <p class="mt-2 border-t border-border/60 pt-2 text-[11px] text-text-muted">
+              <p class="mt-2 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
                 Nodes at each level of nesting. Level
-                <span class="font-mono text-text tabular-nums">{{ depthChart.peak.level }}</span>
+                <span class="font-mono text-foreground tabular-nums">
+                  {{ depthChart.peak.level }}
+                </span>
                 is the busiest, holding
-                <span class="font-mono text-text tabular-nums">
+                <span class="font-mono text-foreground tabular-nums">
                   {{ format(depthChart.peak.count) }}
                 </span>
                 of them.
@@ -133,7 +139,7 @@
                 :formatter="format"
               />
             </div>
-            <p v-else class="p-3 text-sm text-text-muted">No object keys in this document.</p>
+            <p v-else class="p-3 text-sm text-muted-foreground">No object keys in this document.</p>
           </JsonPanel>
 
           <JsonPanel title="Structure" icon="icon-[solar--ruler-cross-pen-linear]">
@@ -143,9 +149,9 @@
                 :key="row.label"
                 class="flex items-center justify-between gap-3 px-3 py-2"
               >
-                <dt class="text-text-muted">{{ row.label }}</dt>
+                <dt class="text-muted-foreground">{{ row.label }}</dt>
                 <dd
-                  class="max-w-[60%] truncate text-end font-mono text-text tabular-nums"
+                  class="max-w-[60%] truncate text-end font-mono text-foreground tabular-nums"
                   :title="String(row.value)"
                 >
                   {{ row.value }}
@@ -175,7 +181,7 @@
 
       <UiAppEmptyState
         v-else
-        class="rounded-xl border border-border bg-surface"
+        class="border border-border bg-card"
         icon="icon-[solar--chart-square-linear]"
         :variant="store.isEmpty ? 'neutral' : store.scanning ? 'info' : 'danger'"
         :title="

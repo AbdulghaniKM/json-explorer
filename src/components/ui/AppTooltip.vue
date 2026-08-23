@@ -25,7 +25,7 @@
         :id="tipId"
         ref="tipRef"
         role="tooltip"
-        class="pointer-events-none fixed z-[9990] max-w-xs rounded-lg px-3 py-1.5 text-xs leading-snug font-medium whitespace-normal shadow-lg"
+        class="pointer-events-none fixed z-[9990] max-w-xs px-3 py-1.5 text-xs leading-snug font-medium whitespace-normal"
         :class="themeClass"
         :style="{ left: `${tip.left}px`, top: `${tip.top}px` }"
       >
@@ -174,11 +174,13 @@
 
   const themeClass = computed(() =>
     props.dark
-      ? 'bg-text text-surface ring-1 ring-surface/10'
-      : 'bg-surface text-text border border-border shadow-md',
+      ? 'bg-foreground text-background ring-1 ring-background/10'
+      : 'bg-card text-foreground border border-border',
   );
 
-  const arrowClass = computed(() => (props.dark ? 'bg-text' : 'bg-surface border border-border'));
+  const arrowClass = computed(() =>
+    props.dark ? 'bg-foreground' : 'bg-card border border-border',
+  );
 
   const arrowEdgeClass = computed(
     () =>

@@ -36,13 +36,6 @@
   --color-destructive: #ff5f56;
   --color-info: #5ad7e8;
 
-  /* Pre-rename names, mirrored by LEGACY_ALIASES in utils/theme.ts. Both lists go in the
-     commit that removes the last legacy class. */
-  --color-surface: #0f130f;
-  --color-text: #d5e3d5;
-  --color-text-secondary: #7e8f7e;
-  --color-text-muted: #7e8f7e;
-
   /* Square by default. The html[data-shape] knob in this file still overrides it, but note
      `rounded` and `rounded-full` compile to literals and never read this scale. */
   --radius-sm: 0px;
@@ -127,6 +120,12 @@
   --code-size: 13px;
   --indent-width: 14px;
   --control-h: 32px;
+
+  /* Everything the viewport spends on chrome: the main element's py-3 top and bottom plus
+     the status line. Panels claim what is left. svh, not vh, so mobile browsers do not
+     measure against a toolbar that is about to slide away. */
+  --chrome-h: 3.25rem;
+  --panel-h: calc(100svh - var(--header-h) - var(--chrome-h));
 }
 
 [data-theme='light'] {

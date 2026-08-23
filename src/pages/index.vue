@@ -47,11 +47,11 @@
         @click="store.loadSample"
       />
 
-      <div class="flex items-center gap-1 rounded-lg border border-border bg-surface ps-2">
+      <div class="flex items-center gap-1 border border-border bg-card ps-2">
         <UiAppIcon name="icon-[solar--bolt-linear]" :size="0.9" class="text-warning" />
         <select
           v-model.number="stressRecords"
-          class="h-8 bg-transparent text-xs text-text outline-none"
+          class="h-8 bg-transparent text-xs text-foreground outline-none"
         >
           <option :value="20000">20k records · ~7 MB</option>
           <option :value="100000">100k records · ~33 MB</option>
@@ -93,7 +93,7 @@
         v-show="showEditor"
         v-model="store.source"
         label="Source"
-        class="h-[42vh] lg:h-[calc(100vh-13rem)]"
+        class="h-[42vh] lg:h-(--panel-h)"
         :error="store.error"
         :valid="store.isValid"
         :lines="stats?.lines ?? null"
@@ -124,7 +124,7 @@
         title="Tree"
         icon="icon-[solar--folder-with-files-linear]"
         :badge="rowLabel"
-        class="h-[52vh] lg:h-[calc(100vh-13rem)]"
+        class="h-[52vh] lg:h-(--panel-h)"
       >
         <template #actions>
           <UiAppButton
@@ -158,7 +158,7 @@
           <div class="relative min-w-0 flex-1">
             <UiAppIcon
               name="icon-[solar--magnifer-linear]"
-              class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-text-muted"
+              class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
               :size="0.875"
             />
             <input
@@ -166,12 +166,12 @@
               v-model="tree.query.value"
               type="search"
               placeholder="Search keys and values…"
-              class="h-8 w-full rounded-lg border border-border bg-background ps-8 pe-2 text-sm text-text outline-none focus:border-primary"
+              class="h-8 w-full border border-border bg-background ps-8 pe-2 text-sm text-foreground outline-none focus:border-primary"
             />
           </div>
 
           <div v-if="tree.query.value.trim()" class="flex items-center gap-1">
-            <span class="font-mono text-xs text-text-muted">
+            <span class="font-mono text-xs text-muted-foreground">
               {{ tree.matchCount.value ? tree.activeIndex.value + 1 : 0 }}/{{
                 compact(tree.matchCount.value)
               }}{{ tree.matchesTruncated.value ? '+' : '' }}
@@ -202,7 +202,7 @@
 
           <select
             v-model.number="depth"
-            class="h-8 rounded-lg border border-border bg-background px-2 text-sm text-text outline-none focus:border-primary"
+            class="h-8 border border-border bg-background px-2 text-sm text-foreground outline-none focus:border-primary"
             @change="tree.expandToDepth(depth)"
           >
             <option :value="1">Depth 1</option>
@@ -264,7 +264,7 @@
         </UiAppEmptyState>
 
         <footer
-          class="flex items-center gap-2 border-t border-border/70 bg-muted/30 px-3 py-2 font-mono text-xs text-text-muted"
+          class="flex items-center gap-2 border-t border-border/70 bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground"
         >
           <span class="truncate">{{ tree.selectedPath.value }}</span>
           <UiAppButton

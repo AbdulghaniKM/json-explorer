@@ -35,7 +35,7 @@
           <button
             v-if="row.container && row.childCount > 0"
             type="button"
-            class="flex size-4 shrink-0 items-center justify-center rounded text-text-muted hover:bg-border hover:text-text"
+            class="flex size-4 shrink-0 items-center justify-center text-muted-foreground hover:bg-border hover:text-foreground"
             :aria-label="row.expanded ? 'Collapse' : 'Expand'"
             @click.stop="onToggle(row, $event)"
           >
@@ -51,7 +51,7 @@
           <span v-else class="size-4 shrink-0" />
 
           <span v-if="row.key !== null" class="shrink-0 font-mono text-(length:--code-size)">
-            <span :class="row.arrayItem ? 'text-text-muted' : 'tok-key'">{{ row.key }}</span>
+            <span :class="row.arrayItem ? 'text-muted-foreground' : 'tok-key'">{{ row.key }}</span>
             <span class="tok-punct">:</span>
           </span>
 
@@ -61,7 +61,7 @@
             :class="row.depthClass"
           >
             <span>{{ row.open }}</span>
-            <span v-if="!row.expanded" class="text-text-muted">{{ row.summary }}</span>
+            <span v-if="!row.expanded" class="text-muted-foreground">{{ row.summary }}</span>
             <span v-if="!row.expanded">{{ row.close }}</span>
           </span>
 
@@ -71,7 +71,7 @@
 
           <span
             v-if="row.container && row.expanded"
-            class="shrink-0 rounded-full bg-muted px-1.5 font-mono text-[11px] text-text-muted"
+            class="shrink-0 bg-muted px-1.5 font-mono text-[11px] text-muted-foreground"
           >
             {{ row.childCount }}
           </span>
@@ -79,7 +79,7 @@
           <span class="ms-auto hidden shrink-0 items-center gap-0.5 pe-2 group-hover:flex">
             <button
               type="button"
-              class="rounded p-1 text-text-muted hover:bg-border hover:text-text"
+              class="p-1 text-muted-foreground hover:bg-border hover:text-foreground"
               title="Copy path"
               @click.stop="copyPath(row.id)"
             >
@@ -87,7 +87,7 @@
             </button>
             <button
               type="button"
-              class="rounded p-1 text-text-muted hover:bg-border hover:text-text"
+              class="p-1 text-muted-foreground hover:bg-border hover:text-foreground"
               title="Copy value"
               @click.stop="copyValue(row.id)"
             >
@@ -224,7 +224,7 @@
             : ` ${childCount.toLocaleString('en-US')} keys `
           : '',
         value: container ? '' : rawTextOf(props.text, index, id, VALUE_CHARS),
-        tokenClass: tokenClasses[type] ?? 'text-text',
+        tokenClass: tokenClasses[type] ?? 'text-foreground',
         match: matches.has(id),
         active: id === active,
         selected: id === selected,

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-border bg-surface"
+    class="flex min-h-0 flex-col overflow-hidden border border-border bg-card"
     :class="dragging ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''"
     @dragenter.prevent="dragging = true"
     @dragover.prevent="dragging = true"
@@ -8,16 +8,13 @@
     @drop.prevent="onDrop"
   >
     <header class="flex items-center gap-2 border-b border-border/70 px-3 py-2">
-      <span class="text-xs font-semibold tracking-wider text-text-muted uppercase">
+      <span class="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
         {{ label }}
       </span>
-      <span class="rounded-full bg-muted px-2 py-0.5 font-mono text-[11px] text-text-muted">
+      <span class="bg-muted px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
         {{ lineLabel }} · {{ charLabel }}
       </span>
-      <span
-        v-if="!editable"
-        class="rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning"
-      >
+      <span v-if="!editable" class="bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning">
         read-only
       </span>
       <div class="ms-auto flex items-center gap-1">
@@ -36,7 +33,7 @@
       <div class="flex h-full min-h-0">
         <div
           ref="gutterRef"
-          class="hidden shrink-0 overflow-hidden border-e border-border/60 bg-muted/40 py-3 text-end font-mono text-(length:--code-size) leading-(--code-line) text-text-muted/70 select-none sm:block"
+          class="hidden shrink-0 overflow-hidden border-e border-border/60 bg-muted/40 py-3 text-end font-mono text-(length:--code-size) leading-(--code-line) text-muted-foreground/70 select-none sm:block"
           :style="{ width: gutterWidth }"
         >
           <div
@@ -67,7 +64,7 @@
             autocapitalize="off"
             wrap="off"
             class="absolute inset-0 h-full w-full resize-none bg-transparent p-3 font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre caret-primary outline-none"
-            :class="useHighlight ? 'text-transparent' : 'text-text'"
+            :class="useHighlight ? 'text-transparent' : 'text-foreground'"
             @input="onInput"
             @scroll="syncScroll"
             @keydown.tab="onTab"
@@ -81,7 +78,7 @@
       class="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/80"
     >
       <div
-        class="flex items-center gap-2 rounded-xl border border-dashed border-primary px-4 py-3 text-sm font-medium text-primary"
+        class="flex items-center gap-2 border border-dashed border-primary px-4 py-3 text-sm font-medium text-primary"
       >
         <UiAppIcon name="icon-[solar--upload-minimalistic-linear]" />
         Drop a JSON file to load it
@@ -108,7 +105,7 @@
       >
         line {{ error.line }}:{{ error.column }}
       </button>
-      <span class="truncate text-text-muted">{{ error.message }}</span>
+      <span class="truncate text-muted-foreground">{{ error.message }}</span>
       <slot name="error-action" />
     </footer>
 

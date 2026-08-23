@@ -9,7 +9,7 @@
           :style="{ height: `${ROW_HEIGHT}px` }"
         >
           <span
-            class="sticky start-0 shrink-0 border-e border-border/60 bg-muted/40 px-2 text-end font-mono text-(length:--code-size) leading-(--code-line) text-text-muted select-none"
+            class="sticky start-0 shrink-0 border-e border-border/60 bg-muted/40 px-2 text-end font-mono text-(length:--code-size) leading-(--code-line) text-muted-foreground select-none"
             :class="line.number === errorLine ? 'bg-error/15 font-semibold text-error' : ''"
             :style="{ width: gutterWidth }"
           >

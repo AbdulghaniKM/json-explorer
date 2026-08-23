@@ -17,13 +17,13 @@
         @click="store.loadSample"
       />
       <label
-        class="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-muted"
+        class="flex items-center gap-2 border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground"
       >
         <input v-model="ignoreArrayOrder" type="checkbox" class="accent-primary" />
         Ignore array order
       </label>
       <label
-        class="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text-muted"
+        class="flex items-center gap-2 border border-border bg-card px-3 py-1.5 text-sm text-muted-foreground"
       >
         <input v-model="onlyChanges" type="checkbox" class="accent-primary" />
         Hide unchanged branches
@@ -162,7 +162,7 @@
       summary.value = null;
       message.value = 'Both sides need a JSON document.';
       // Clear the flag too: an earlier run may still be in flight, and its stale-token
-      // return would otherwise leave the "Comparing…" state showing forever.
+      // return would otherwise leave the"Comparing…" state showing forever.
       comparing.value = false;
       return;
     }

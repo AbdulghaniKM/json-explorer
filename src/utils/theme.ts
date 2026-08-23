@@ -26,34 +26,11 @@ export const generateCSSVariables = (theme: ThemeConfig): string => {
 
 const camelToKebab = (str: string): string => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 
-/**
- * Pre-rename utility names, emitted alongside the current ones so both vocabularies resolve
- * while the call sites migrate. Delete this map — and the matching entries in style.css's
- * `@theme` — in the same commit that removes the last legacy class.
- *
- * `text-muted` earns its place here: it used to exist *only* as `var(--color-text-secondary)`
- * inside `@theme`, so the 61 `text-text-muted` call sites would have silently dropped to a
- * build-time grey the moment `--color-text-secondary` stopped being emitted.
- */
-const LEGACY_ALIASES: Record<string, keyof ColorPalette> = {
-  surface: 'card',
-  text: 'foreground',
-  'text-secondary': 'mutedForeground',
-  'text-muted': 'mutedForeground',
-};
-
-const generateColorVariables = (palette: ColorPalette): string => {
-  const declarations = Object.entries(palette)
+const generateColorVariables = (palette: ColorPalette): string =>
+  Object.entries(palette)
     .filter(([, value]) => value)
-    .map(([key, value]) => `  --color-${camelToKebab(key)}: ${value};`);
-
-  for (const [legacy, current] of Object.entries(LEGACY_ALIASES)) {
-    const value = palette[current];
-    if (value) declarations.push(`  --color-${legacy}: ${value};`);
-  }
-
-  return declarations.join('\n');
-};
+    .map(([key, value]) => `  --color-${camelToKebab(key)}: ${value};`)
+    .join('\n');
 
 const writeStyleElement = (id: string, css: string): void => {
   let styleElement = document.getElementById(id) as HTMLStyleElement | null;

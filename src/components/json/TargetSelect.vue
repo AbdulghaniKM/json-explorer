@@ -5,18 +5,18 @@
       role="combobox"
       aria-haspopup="listbox"
       :aria-expanded="open"
-      class="flex h-9 w-56 items-center gap-2 rounded-xl border border-border bg-surface px-2.5 text-start text-sm transition-colors hover:border-primary/50 focus-visible:border-primary focus-visible:outline-none"
+      class="flex h-9 w-56 items-center gap-2 border border-border bg-card px-2.5 text-start text-sm transition-colors hover:border-primary/50 focus-visible:border-primary focus-visible:outline-none"
       @click="toggle"
       @keydown="onTriggerKeydown"
     >
-      <span class="flex size-6 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+      <span class="flex size-6 shrink-0 items-center justify-center bg-primary/10">
         <UiAppIcon :name="selected.icon" :size="0.9" class="text-primary" />
       </span>
-      <span class="min-w-0 flex-1 truncate font-medium text-text">{{ selected.label }}</span>
+      <span class="min-w-0 flex-1 truncate font-medium text-foreground">{{ selected.label }}</span>
       <UiAppIcon
         name="icon-[solar--alt-arrow-down-linear]"
         :size="0.85"
-        class="shrink-0 text-text-muted transition-transform"
+        class="shrink-0 text-muted-foreground transition-transform"
         :class="open && 'rotate-180'"
       />
     </button>
@@ -25,12 +25,12 @@
       v-if="open"
       role="listbox"
       aria-label="Conversion target"
-      class="absolute start-0 z-40 mt-2 w-[19rem] overflow-hidden rounded-xl border border-border bg-surface py-1 shadow-lg"
+      class="absolute start-0 z-40 mt-2 w-[19rem] overflow-hidden border border-border bg-popover py-1"
       @keydown="onListKeydown"
     >
       <template v-for="group in CONVERT_GROUPS" :key="group">
         <p
-          class="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-text-muted uppercase"
+          class="px-3 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase"
         >
           {{ group }}
         </p>
@@ -56,11 +56,11 @@
             :name="option.icon"
             :size="0.95"
             class="mt-0.5 shrink-0"
-            :class="option.id === modelValue ? 'text-primary' : 'text-text-muted'"
+            :class="option.id === modelValue ? 'text-primary' : 'text-muted-foreground'"
           />
           <span class="min-w-0 flex-1">
-            <span class="block text-sm font-medium text-text">{{ option.label }}</span>
-            <span class="block text-[11px] leading-snug text-text-muted">
+            <span class="block text-sm font-medium text-foreground">{{ option.label }}</span>
+            <span class="block text-[11px] leading-snug text-muted-foreground">
               {{ option.summary }}
             </span>
           </span>

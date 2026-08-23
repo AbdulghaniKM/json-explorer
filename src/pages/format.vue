@@ -69,11 +69,11 @@
       />
 
       <div class="ms-auto flex items-center gap-2">
-        <label class="flex items-center gap-1.5 text-xs text-text-muted">
+        <label class="flex items-center gap-1.5 text-xs text-muted-foreground">
           Indent
           <select
             v-model="store.indent"
-            class="h-8 rounded-lg border border-border bg-surface px-2 text-sm text-text outline-none focus:border-primary"
+            class="h-8 border border-border bg-card px-2 text-sm text-foreground outline-none focus:border-primary"
           >
             <option value="2">2 spaces</option>
             <option value="4">4 spaces</option>
@@ -95,7 +95,7 @@
       <JsonEditor
         v-model="store.source"
         label="Editor"
-        class="h-[60vh] lg:h-[calc(100vh-13rem)]"
+        class="h-[60vh] lg:h-(--panel-h)"
         :error="store.error"
         :valid="store.isValid"
         :lines="store.stats?.lines ?? null"
@@ -158,14 +158,14 @@
               :key="row.label"
               class="flex items-center justify-between gap-3 px-3 py-2"
             >
-              <dt class="text-text-muted">{{ row.label }}</dt>
-              <dd class="font-mono text-text tabular-nums">{{ row.value }}</dd>
+              <dt class="text-muted-foreground">{{ row.label }}</dt>
+              <dd class="font-mono text-foreground tabular-nums">{{ row.value }}</dd>
             </div>
           </dl>
         </JsonPanel>
 
         <JsonPanel title="Large documents" icon="icon-[solar--bolt-linear]">
-          <div class="space-y-2 p-3 text-sm text-text-muted">
+          <div class="space-y-2 p-3 text-sm text-muted-foreground">
             <p>
               Beautify, minify and sort stream straight from the source text using the index, so
               they never build an in-memory copy of the document. They run in a worker.
@@ -175,10 +175,10 @@
         </JsonPanel>
 
         <JsonPanel title="Messy input?" icon="icon-[solar--broom-linear]">
-          <div class="space-y-3 p-3 text-sm text-text-muted">
+          <div class="space-y-3 p-3 text-sm text-muted-foreground">
             <p>
               Repair handles comments, single quotes, unquoted keys, trailing commas, Python-style
-              <code class="font-mono text-text">True/False/None</code>
+              <code class="font-mono text-foreground">True/False/None</code>
               , unclosed brackets and newline-delimited JSON.
             </p>
             <UiAppButton
