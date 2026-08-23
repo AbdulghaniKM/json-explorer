@@ -8,7 +8,8 @@ the page.
 
 | Tool                   | What it does                                                                                               |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Explore** `/`        | Collapsible tree with type colouring, search across keys and values, match navigation, path and value copy |
+| **Landing** `/`        | Hero with a live typing terminal and phosphor rain, the measured numbers, and the tool index               |
+| **Explore** `/explore` | Collapsible tree with type colouring, search across keys and values, match navigation, path and value copy |
 | **Format** `/format`   | Beautify, minify, sort keys, drop empty values, escape/unescape, and repair malformed JSON                 |
 | **Compare** `/compare` | Structural diff that ignores key order, with optional array-order-insensitive matching                     |
 | **Analyze** `/analyze` | Characters, lines, raw/minified/gzip size, and charted value-type, nesting-depth and key-frequency counts  |

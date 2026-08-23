@@ -57,4 +57,18 @@ describe('command palette filtering', () => {
   it('returns nothing when no command matches', () => {
     expect(search('zzzz', list)).toEqual([]);
   });
+
+  // The layout registers the commands and a different component renders them, so every
+  // caller has to observe the same registry. Per-instance state made the palette render an
+  // empty list with no error anywhere.
+  it('shares its registry across separate callers', () => {
+    const registrar = useCommandPalette();
+    const consumer = useCommandPalette();
+
+    registrar.register(list);
+    registrar.query.value = '';
+
+    expect(consumer.matches.value.map((entry) => entry.id)).toEqual(list.map((c) => c.id));
+    expect(consumer.commands.value).toHaveLength(list.length);
+  });
 });

@@ -67,13 +67,14 @@
 }
 */
 
-/* Default font families - will be overridden by app.config.ts */
+/* Covers the frame before registerFontFamily() writes the real stacks as inline styles on
+   <html>. Do not delete: `--font-mono` inside @theme is a self-reference, and without this
+   declaration it becomes invalid-at-computed-value and every font-mono element falls back to
+   the UA sans on first paint. */
 :root {
-  --font-sans:
-    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+  --font-sans: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
   --font-serif: Georgia, 'Times New Roman', serif;
-  --font-mono: 'Courier New', Courier, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
 }
 
 /* Theme CSS variables will be injected automatically by the config system */
@@ -100,7 +101,7 @@
   --token-null: #7d7f88;
   --token-punct: #4d4f57;
   --diff-added: #00e05c1f;
-  --diff-removed: #ff5f561f;
+  --diff-removed: #ff6b621f;
   --diff-changed: #e8c5471f;
 
   /* Braces and indent guides, cycling every six levels. These have to be distinguishable

@@ -102,7 +102,12 @@
       <div
         class="mx-auto flex w-full max-w-[1400px] items-center gap-3 overflow-x-auto px-3 py-1 font-mono text-[11px] whitespace-nowrap text-muted-foreground"
       >
+        <span v-if="onLanding" class="flex shrink-0 items-center gap-1.5 text-muted-foreground">
+          <span class="text-primary" aria-hidden="true">▊</span>
+          json-explorer
+        </span>
         <span
+          v-else
           class="flex shrink-0 items-center gap-1.5"
           :class="status.tone"
           :title="store.error?.message"
@@ -111,7 +116,7 @@
           {{ status.label }}
         </span>
 
-        <template v-if="store.stats">
+        <template v-if="store.stats && !onLanding">
           <span class="text-border" aria-hidden="true">│</span>
           <span class="shrink-0 tabular-nums">{{ nodeLabel }} nodes</span>
           <span class="text-border" aria-hidden="true">│</span>
@@ -294,7 +299,7 @@
 
   const SHORTCUTS = [
     { keys: 'Ctrl K', label: 'Command palette' },
-    { keys: 'Alt 1–5', label: 'Switch tool' },
+    { keys: 'Alt 1–5', label: 'Jump to a tool' },
     { keys: 'Ctrl O', label: 'Open a file' },
     { keys: 'Ctrl S', label: 'Download JSON' },
     { keys: 'Ctrl B', label: 'Beautify' },
@@ -311,8 +316,11 @@
 
   const nodeLabel = computed(() => (store.stats?.totalNodes ?? 0).toLocaleString('en-US'));
 
-  const isActive = (path: string) =>
-    path === '/' ? route.path === '/' : route.path.startsWith(path);
+  // The landing page has no document, so a status of "empty" would read as a fault rather
+  // than a fact.
+  const onLanding = computed(() => route.path === '/');
+
+  const isActive = (path: string) => route.path.startsWith(path);
 
   useKeyboard({
     'ctrl+k': () => {

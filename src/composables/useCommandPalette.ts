@@ -19,8 +19,12 @@ export interface Command {
 
 export const COMMAND_GROUPS: CommandGroup[] = ['Go to', 'Document', 'Transform', 'Appearance'];
 
+// All three are module scope, deliberately. The layout registers the command set and a
+// different component renders it, so per-instance state would leave the palette reading an
+// empty list it had no way to know was the wrong one.
 const open = ref(false);
 const query = ref('');
+const commands = ref<Command[]>([]);
 
 /**
  * Ranks a command against the query. Returns -1 for no match.
@@ -49,8 +53,6 @@ const score = (command: Command, needle: string): number => {
 };
 
 export const useCommandPalette = (source?: () => Command[]) => {
-  const commands = ref<Command[]>([]);
-
   const register = (list: Command[]) => {
     commands.value = list;
   };

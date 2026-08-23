@@ -21,6 +21,8 @@ declare module 'vue' {
     JsonStatCard: typeof import('./components/json/StatCard.vue')['default']
     JsonTargetSelect: typeof import('./components/json/TargetSelect.vue')['default']
     JsonVirtualTree: typeof import('./components/json/VirtualTree.vue')['default']
+    LandingMatrixRain: typeof import('./components/landing/MatrixRain.vue')['default']
+    LandingTerminalDemo: typeof import('./components/landing/TerminalDemo.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     UiAppBadge: typeof import('./components/ui/AppBadge.vue')['default']

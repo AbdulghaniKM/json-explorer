@@ -70,37 +70,24 @@ export const appConfig: AppConfig = {
     },
   },
 
+  // One typeface. The app is a tool for reading raw text, so the UI is set in the same face
+  // as the data it shows — the variable weight axis (100–800) supplies the hierarchy that a
+  // second family would otherwise provide.
+  //
+  // The previous primary was IBM Plex Sans *Arabic*, shipped as a 227 kB TTF with a single
+  // weight and used for English UI. It is no longer fetched. public/font/ still holds the
+  // file; delete it whenever you like.
   typography: {
-    fonts: [
-      {
-        name: 'IBM Plex Sans',
-        src: '/font/IBMPlexSansArabic-Regular.ttf',
-        weight: 400,
-        style: 'normal',
-        display: 'swap',
-        preload: true,
-      },
-    ],
     primary: {
-      family: 'IBM Plex Sans',
-      fallbacks: [
-        'system-ui',
-        '-apple-system',
-        'BlinkMacSystemFont',
-        'Segoe UI',
-        'Roboto',
-        'sans-serif',
-      ],
+      family: 'JetBrains Mono Variable',
+      fallbacks: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       cssVariable: 'font-primary',
     },
     secondary: {
-      family: 'IBM Plex Sans',
-      fallbacks: ['system-ui', 'sans-serif'],
+      family: 'JetBrains Mono Variable',
+      fallbacks: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       cssVariable: 'font-secondary',
     },
-    // Declared by @fontsource-variable/jetbrains-mono, imported in style.css. The family name
-    // has to match that package's @font-face exactly — registerFontFamily writes it straight
-    // into --font-mono as an inline style on <html>, where nothing else can correct it.
     mono: {
       family: 'JetBrains Mono Variable',
       fallbacks: [

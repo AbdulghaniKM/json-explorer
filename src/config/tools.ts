@@ -8,7 +8,7 @@ export interface ToolLink {
 export const TOOLS: ToolLink[] = [
   {
     label: 'Explore',
-    path: '/',
+    path: '/explore',
     icon: 'icon-[solar--folder-with-files-linear]',
     description: 'Collapsible tree with search, filtering and path copy',
   },
