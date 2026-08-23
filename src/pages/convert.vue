@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col gap-3">
-    <div class="flex flex-wrap items-center gap-2">
+  <JsonWorkbench>
+    <template #toolbar>
       <JsonTargetSelect v-model="active" />
 
       <label
@@ -47,48 +47,60 @@
           @click="downloadOutput"
         />
       </div>
-    </div>
+    </template>
 
-    <div class="grid gap-3 lg:grid-cols-2">
-      <JsonEditor
-        v-model="store.source"
-        label="JSON"
-        class="h-[40vh] lg:h-(--panel-h)"
-        :error="store.error"
-        :valid="store.isValid"
-        :lines="store.stats?.lines ?? null"
-      >
-        <template #actions>
-          <UiAppButton
-            icon="icon-[solar--upload-minimalistic-linear]"
-            icon-only
-            size="xs"
-            tooltip="Open a file"
-            @click="open"
-          />
-          <UiAppButton
-            v-if="showSampleData"
-            icon="icon-[solar--document-add-linear]"
-            icon-only
-            size="xs"
-            tooltip="Load the sample"
-            @click="store.loadSample"
-          />
-        </template>
-      </JsonEditor>
+    <JsonSplitPane
+      storage-key="convert"
+      :initial="50"
+      :min="20"
+      :max="80"
+      label="Resize the JSON and the output"
+      class="lg:h-(--panel-h)"
+    >
+      <template #a>
+        <JsonEditor
+          v-model="store.source"
+          label="JSON"
+          class="h-(--editor-h) lg:h-auto"
+          :error="store.error"
+          :valid="store.isValid"
+          :lines="store.stats?.lines ?? null"
+        >
+          <template #actions>
+            <UiAppButton
+              icon="icon-[solar--upload-minimalistic-linear]"
+              icon-only
+              size="xs"
+              tooltip="Open a file"
+              @click="open"
+            />
+            <UiAppButton
+              v-if="showSampleData"
+              icon="icon-[solar--document-add-linear]"
+              icon-only
+              size="xs"
+              tooltip="Load the sample"
+              @click="store.loadSample"
+            />
+          </template>
+        </JsonEditor>
+      </template>
 
-      <JsonPanel
-        :title="currentTarget.label"
-        :icon="currentTarget.icon"
-        :badge="truncated ? 'preview truncated' : undefined"
-        class="h-[40vh] lg:h-(--panel-h)"
-      >
-        <JsonOutput :text="preview" :placeholder="placeholder" />
-      </JsonPanel>
-    </div>
-
-    <p class="text-xs text-muted-foreground">{{ currentTarget.hint }}</p>
-  </div>
+      <template #b>
+        <JsonPanel
+          :title="currentTarget.label"
+          :icon="currentTarget.icon"
+          :badge="truncated ? 'preview truncated' : undefined"
+          class="h-(--editor-h) lg:h-auto"
+        >
+          <JsonOutput :text="preview" :placeholder="placeholder" />
+          <p class="border-t border-border/70 px-3 py-1.5 text-xs text-muted-foreground">
+            {{ currentTarget.hint }}
+          </p>
+        </JsonPanel>
+      </template>
+    </JsonSplitPane>
+  </JsonWorkbench>
 </template>
 
 <script setup lang="ts">

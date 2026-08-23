@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col gap-3">
-    <div class="flex flex-wrap items-center gap-2">
+  <JsonWorkbench>
+    <template #toolbar>
       <UiAppButton
         variant="primary"
         size="sm"
@@ -86,199 +86,219 @@
         <UiAppBadge v-if="stats" variant="surface">{{ formatBytes(stats.bytes) }}</UiAppBadge>
         <UiAppBadge v-if="stats" variant="muted">indexed in {{ stats.scanMs }} ms</UiAppBadge>
       </div>
-    </div>
+    </template>
 
-    <div class="grid min-h-0 gap-3" :class="showEditor ? 'lg:grid-cols-2' : 'lg:grid-cols-1'">
-      <JsonEditor
-        v-show="showEditor"
-        v-model="store.source"
-        label="Source"
-        class="h-[42vh] lg:h-(--panel-h)"
-        :error="store.error"
-        :valid="store.isValid"
-        :lines="stats?.lines ?? null"
-        @file="onFileLoaded"
-      >
-        <template #actions>
-          <UiAppButton
-            icon="icon-[solar--undo-left-linear]"
-            icon-only
-            size="xs"
-            tooltip="Undo last transform"
-            :disabled="!store.canUndo"
-            @click="store.undo"
+    <JsonSplitPane
+      storage-key="explore"
+      :initial="45"
+      :min="20"
+      :max="75"
+      :collapsed="!showEditor"
+      label="Resize the editor and the tree"
+      class="lg:h-(--panel-h)"
+    >
+      <template #a>
+        <JsonEditor
+          v-show="showEditor"
+          v-model="store.source"
+          label="Source"
+          class="h-(--editor-h) lg:h-auto"
+          :error="store.error"
+          :valid="store.isValid"
+          :lines="stats?.lines ?? null"
+          @file="onFileLoaded"
+        >
+          <template #actions>
+            <UiAppButton
+              icon="icon-[solar--undo-left-linear]"
+              icon-only
+              size="xs"
+              tooltip="Undo last transform"
+              :disabled="!store.canUndo"
+              @click="store.undo"
+            />
+          </template>
+          <template #error-action>
+            <button
+              type="button"
+              class="ms-auto font-medium text-primary hover:underline"
+              @click="repair"
+            >
+              Try to fix it
+            </button>
+          </template>
+        </JsonEditor>
+      </template>
+
+      <template #b>
+        <JsonPanel
+          title="Tree"
+          icon="icon-[solar--folder-with-files-linear]"
+          :badge="rowLabel"
+          class="h-[52svh] lg:h-auto"
+        >
+          <template #actions>
+            <UiAppButton
+              :icon="
+                showEditor
+                  ? 'icon-[solar--maximize-square-3-linear]'
+                  : 'icon-[solar--minimize-square-3-linear]'
+              "
+              icon-only
+              size="xs"
+              :tooltip="showEditor ? 'Hide the editor' : 'Show the editor'"
+              @click="showEditor = !showEditor"
+            />
+            <UiAppButton
+              icon="icon-[solar--list-linear]"
+              icon-only
+              size="xs"
+              tooltip="Expand all (capped for very large documents)"
+              @click="tree.expandAll"
+            />
+            <UiAppButton
+              icon="icon-[solar--minimize-square-3-linear]"
+              icon-only
+              size="xs"
+              tooltip="Collapse all"
+              @click="tree.collapseAll"
+            />
+          </template>
+
+          <div class="flex flex-wrap items-center gap-2 border-b border-border/70 px-3 py-2">
+            <div class="relative min-w-0 flex-1">
+              <UiAppIcon
+                name="icon-[solar--magnifer-linear]"
+                class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                :size="0.875"
+              />
+              <input
+                ref="searchRef"
+                v-model="tree.query.value"
+                type="search"
+                placeholder="Search keys and values…"
+                class="h-8 w-full border border-border bg-background ps-8 pe-2 text-sm text-foreground outline-none focus:border-primary"
+              />
+            </div>
+
+            <!-- Always mounted, disabled when there is nothing to step through: appearing on
+                 the first keystroke reflowed the row and moved the controls under the cursor. -->
+            <div class="flex items-center gap-1">
+              <span
+                class="font-mono text-xs tabular-nums"
+                :class="hasQuery ? 'text-muted-foreground' : 'text-muted-foreground/40'"
+              >
+                {{ tree.matchCount.value ? tree.activeIndex.value + 1 : 0 }}/{{
+                  compact(tree.matchCount.value)
+                }}{{ tree.matchesTruncated.value ? '+' : '' }}
+              </span>
+              <UiAppButton
+                icon="icon-[solar--alt-arrow-up-linear]"
+                icon-only
+                size="xs"
+                tooltip="Previous match"
+                :disabled="!tree.matchCount.value"
+                @click="tree.previousMatch"
+              />
+              <UiAppButton
+                icon="icon-[solar--alt-arrow-down-linear]"
+                icon-only
+                size="xs"
+                tooltip="Next match"
+                :disabled="!tree.matchCount.value"
+                @click="tree.nextMatch"
+              />
+              <UiAppButton
+                icon="icon-[solar--filter-linear]"
+                icon-only
+                size="xs"
+                :variant="tree.onlyMatches.value ? 'primary' : 'ghost'"
+                tooltip="Show matches only"
+                :disabled="!hasQuery"
+                @click="tree.onlyMatches.value = !tree.onlyMatches.value"
+              />
+            </div>
+
+            <select
+              v-model.number="depth"
+              class="h-8 border border-border bg-background px-2 text-sm text-foreground outline-none focus:border-primary"
+              @change="tree.expandToDepth(depth)"
+            >
+              <option :value="1">Depth 1</option>
+              <option :value="2">Depth 2</option>
+              <option :value="3">Depth 3</option>
+              <option :value="5">Depth 5</option>
+            </select>
+          </div>
+
+          <JsonVirtualTree
+            v-if="store.index && store.isValid"
+            :key="store.documentId"
+            :text="store.source"
+            :index="store.index"
+            :api="tree"
           />
-        </template>
-        <template #error-action>
-          <button
-            type="button"
-            class="ms-auto font-medium text-primary hover:underline"
-            @click="repair"
-          >
-            Try to fix it
-          </button>
-        </template>
-      </JsonEditor>
 
-      <JsonPanel
-        title="Tree"
-        icon="icon-[solar--folder-with-files-linear]"
-        :badge="rowLabel"
-        class="h-[52vh] lg:h-(--panel-h)"
-      >
-        <template #actions>
-          <UiAppButton
+          <UiAppEmptyState
+            v-else
+            class="flex-1"
             :icon="
-              showEditor
-                ? 'icon-[solar--maximize-square-3-linear]'
-                : 'icon-[solar--minimize-square-3-linear]'
+              store.scanning ? 'icon-[solar--bolt-linear]' : 'icon-[solar--danger-triangle-linear]'
             "
-            icon-only
-            size="xs"
-            :tooltip="showEditor ? 'Hide the editor' : 'Show the editor'"
-            @click="showEditor = !showEditor"
-          />
-          <UiAppButton
-            icon="icon-[solar--list-linear]"
-            icon-only
-            size="xs"
-            tooltip="Expand all (capped for very large documents)"
-            @click="tree.expandAll"
-          />
-          <UiAppButton
-            icon="icon-[solar--minimize-square-3-linear]"
-            icon-only
-            size="xs"
-            tooltip="Collapse all"
-            @click="tree.collapseAll"
-          />
-        </template>
-
-        <div class="flex flex-wrap items-center gap-2 border-b border-border/70 px-3 py-2">
-          <div class="relative min-w-0 flex-1">
-            <UiAppIcon
-              name="icon-[solar--magnifer-linear]"
-              class="pointer-events-none absolute start-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
-              :size="0.875"
-            />
-            <input
-              ref="searchRef"
-              v-model="tree.query.value"
-              type="search"
-              placeholder="Search keys and values…"
-              class="h-8 w-full border border-border bg-background ps-8 pe-2 text-sm text-foreground outline-none focus:border-primary"
-            />
-          </div>
-
-          <div v-if="tree.query.value.trim()" class="flex items-center gap-1">
-            <span class="font-mono text-xs text-muted-foreground">
-              {{ tree.matchCount.value ? tree.activeIndex.value + 1 : 0 }}/{{
-                compact(tree.matchCount.value)
-              }}{{ tree.matchesTruncated.value ? '+' : '' }}
-            </span>
-            <UiAppButton
-              icon="icon-[solar--alt-arrow-up-linear]"
-              icon-only
-              size="xs"
-              tooltip="Previous match"
-              @click="tree.previousMatch"
-            />
-            <UiAppButton
-              icon="icon-[solar--alt-arrow-down-linear]"
-              icon-only
-              size="xs"
-              tooltip="Next match"
-              @click="tree.nextMatch"
-            />
-            <UiAppButton
-              icon="icon-[solar--filter-linear]"
-              icon-only
-              size="xs"
-              :variant="tree.onlyMatches.value ? 'primary' : 'ghost'"
-              tooltip="Show matches only"
-              @click="tree.onlyMatches.value = !tree.onlyMatches.value"
-            />
-          </div>
-
-          <select
-            v-model.number="depth"
-            class="h-8 border border-border bg-background px-2 text-sm text-foreground outline-none focus:border-primary"
-            @change="tree.expandToDepth(depth)"
+            :variant="store.isEmpty ? 'neutral' : store.scanning ? 'info' : 'danger'"
+            :title="
+              store.scanning
+                ? 'Indexing the document…'
+                : store.isEmpty
+                  ? 'Nothing to explore yet'
+                  : 'Invalid JSON'
+            "
+            :description="
+              store.scanning
+                ? 'Parsing runs in a worker, so the page stays responsive.'
+                : store.isEmpty
+                  ? 'Paste JSON, drop a file, or generate a large document to stress test the viewer.'
+                  : store.error?.message
+            "
           >
-            <option :value="1">Depth 1</option>
-            <option :value="2">Depth 2</option>
-            <option :value="3">Depth 3</option>
-            <option :value="5">Depth 5</option>
-          </select>
-        </div>
+            <UiAppButton
+              v-if="store.isEmpty && showSampleData"
+              variant="primary"
+              label="Load sample"
+              @click="store.loadSample"
+            />
+            <UiAppButton
+              v-else-if="store.isEmpty"
+              variant="primary"
+              icon="icon-[solar--upload-minimalistic-linear]"
+              label="Open a file"
+              @click="open"
+            />
+            <UiAppButton
+              v-else-if="!store.scanning"
+              variant="primary"
+              label="Try to fix it"
+              @click="repair"
+            />
+          </UiAppEmptyState>
 
-        <JsonVirtualTree
-          v-if="store.index && store.isValid"
-          :key="store.documentId"
-          :text="store.source"
-          :index="store.index"
-          :api="tree"
-        />
-
-        <UiAppEmptyState
-          v-else
-          class="flex-1"
-          :icon="
-            store.scanning ? 'icon-[solar--bolt-linear]' : 'icon-[solar--danger-triangle-linear]'
-          "
-          :variant="store.isEmpty ? 'neutral' : store.scanning ? 'info' : 'danger'"
-          :title="
-            store.scanning
-              ? 'Indexing the document…'
-              : store.isEmpty
-                ? 'Nothing to explore yet'
-                : 'Invalid JSON'
-          "
-          :description="
-            store.scanning
-              ? 'Parsing runs in a worker, so the page stays responsive.'
-              : store.isEmpty
-                ? 'Paste JSON, drop a file, or generate a large document to stress test the viewer.'
-                : store.error?.message
-          "
-        >
-          <UiAppButton
-            v-if="store.isEmpty && showSampleData"
-            variant="primary"
-            label="Load sample"
-            @click="store.loadSample"
-          />
-          <UiAppButton
-            v-else-if="store.isEmpty"
-            variant="primary"
-            icon="icon-[solar--upload-minimalistic-linear]"
-            label="Open a file"
-            @click="open"
-          />
-          <UiAppButton
-            v-else-if="!store.scanning"
-            variant="primary"
-            label="Try to fix it"
-            @click="repair"
-          />
-        </UiAppEmptyState>
-
-        <footer
-          class="flex items-center gap-2 border-t border-border/70 bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground"
-        >
-          <span class="truncate">{{ tree.selectedPath.value }}</span>
-          <UiAppButton
-            icon="icon-[solar--copy-linear]"
-            icon-only
-            size="xs"
-            tooltip="Copy path"
-            class="ms-auto"
-            @click="copyPath"
-          />
-        </footer>
-      </JsonPanel>
-    </div>
-  </div>
+          <footer
+            class="flex items-center gap-2 border-t border-border/70 bg-muted/30 px-3 py-2 font-mono text-xs text-muted-foreground"
+          >
+            <span class="truncate">{{ tree.selectedPath.value }}</span>
+            <UiAppButton
+              icon="icon-[solar--copy-linear]"
+              icon-only
+              size="xs"
+              tooltip="Copy path"
+              class="ms-auto"
+              @click="copyPath"
+            />
+          </footer>
+        </JsonPanel>
+      </template>
+    </JsonSplitPane>
+  </JsonWorkbench>
 </template>
 
 <script setup lang="ts">
@@ -310,6 +330,8 @@
   );
 
   const stats = computed(() => store.stats);
+
+  const hasQuery = computed(() => tree.query.value.trim().length > 0);
 
   const compact = (value: number) => {
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;

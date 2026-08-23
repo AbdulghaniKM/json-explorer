@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col gap-3">
-    <div class="flex flex-wrap items-center gap-2">
+  <JsonWorkbench>
+    <template #toolbar>
       <UiAppButton
         variant="primary"
         size="sm"
@@ -22,205 +22,233 @@
       </UiAppBadge>
       <UiAppBadge v-if="stats" variant="surface">root: {{ stats.rootType }}</UiAppBadge>
       <UiAppBadge v-if="stats" variant="muted">indexed in {{ stats.scanMs }} ms</UiAppBadge>
-    </div>
+    </template>
 
-    <div class="grid gap-3 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-      <JsonEditor
-        v-model="store.source"
-        label="Source"
-        class="h-[30vh] lg:h-(--panel-h)"
-        :error="store.error"
-        :valid="store.isValid"
-        :lines="stats?.lines ?? null"
-      />
+    <JsonSplitPane
+      storage-key="analyze"
+      :initial="34"
+      :min="20"
+      :max="70"
+      label="Resize the source and the statistics"
+      class="lg:h-(--panel-h)"
+    >
+      <template #a>
+        <JsonEditor
+          v-model="store.source"
+          label="Source"
+          class="h-(--editor-h) lg:h-auto"
+          :error="store.error"
+          :valid="store.isValid"
+          :lines="stats?.lines ?? null"
+        />
+      </template>
 
-      <div v-if="stats" class="flex flex-col gap-3">
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <JsonStatCard
-            label="Characters"
-            :value="format(stats.characters)"
-            :hint="`${format(stats.charactersNoWhitespace)} without whitespace`"
-            icon="icon-[solar--text-field-linear]"
-          />
-          <JsonStatCard
-            label="Nodes"
-            :value="format(stats.totalNodes)"
-            :hint="`${format(stats.lines)} lines`"
-            icon="icon-[solar--structure-linear]"
-          />
-          <JsonStatCard
-            label="Size"
-            :value="formatBytes(stats.bytes)"
-            :hint="`minified ${formatBytes(stats.minifiedBytes)}`"
-            icon="icon-[solar--database-linear]"
-          />
-          <JsonStatCard
-            label="Gzip"
-            :value="gzipLabel"
-            :hint="gzipHint"
-            icon="icon-[solar--archive-minimalistic-linear]"
-          />
-        </div>
-
-        <div class="grid gap-3 lg:grid-cols-2">
-          <JsonPanel
-            title="Value types"
-            icon="icon-[solar--pallete-2-linear]"
-            :badge="`${format(stats.totalNodes)} nodes`"
-          >
-            <div class="p-3">
-              <JsonChart
-                type="bar"
-                horizontal
-                :height="13"
-                :categories="typeChart.categories"
-                :series="typeChart.series"
-                :formatter="format"
-              />
-              <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 border-t border-border/60 pt-2">
-                <li
-                  v-for="row in typeRows"
-                  :key="row.type"
-                  class="flex items-center gap-1.5 text-[11px]"
-                >
-                  <span class="text-muted-foreground capitalize">{{ row.type }}</span>
-                  <span class="font-mono text-foreground tabular-nums">
-                    {{ format(row.count) }}
-                  </span>
-                  <span class="font-mono text-muted-foreground tabular-nums">
-                    {{ row.percent }}%
-                  </span>
-                </li>
-              </ul>
-            </div>
-          </JsonPanel>
-
-          <JsonPanel
-            title="Nesting profile"
-            icon="icon-[solar--layers-linear]"
-            :badge="`${stats.depth} levels`"
-          >
-            <div class="p-3">
-              <JsonChart
-                type="bar"
-                :height="13"
-                :categories="depthChart.categories"
-                :series="depthChart.series"
-                :formatter="format"
-              />
-              <p class="mt-2 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
-                Nodes at each level of nesting. Level
-                <span class="font-mono text-foreground tabular-nums">
-                  {{ depthChart.peak.level }}
-                </span>
-                is the busiest, holding
-                <span class="font-mono text-foreground tabular-nums">
-                  {{ format(depthChart.peak.count) }}
-                </span>
-                of them.
-              </p>
-            </div>
-          </JsonPanel>
-        </div>
-
-        <div class="grid gap-3 lg:grid-cols-2">
-          <JsonPanel
-            title="Most repeated keys"
-            icon="icon-[solar--hashtag-linear]"
-            :badge="keysBadge"
-          >
-            <div v-if="keyChart.categories.length" class="p-3">
-              <JsonChart
-                type="bar"
-                horizontal
-                :height="Math.max(9, keyChart.categories.length * 1.5)"
-                :categories="keyChart.categories"
-                :series="keyChart.series"
-                :formatter="format"
-              />
-            </div>
-            <p v-else class="p-3 text-sm text-muted-foreground">No object keys in this document.</p>
-          </JsonPanel>
-
-          <JsonPanel title="Structure" icon="icon-[solar--ruler-cross-pen-linear]">
-            <dl class="divide-y divide-border/60 font-mono text-xs">
-              <div
-                v-for="row in structureRows"
-                :key="row.label"
-                class="flex items-center justify-between gap-3 px-2.5 py-1.5 hover:bg-accent"
-              >
-                <dt class="shrink-0 text-muted-foreground">{{ row.label }}</dt>
-                <dd
-                  class="max-w-[60%] truncate text-end font-mono text-foreground tabular-nums"
-                  :title="String(row.value)"
-                >
-                  {{ row.value }}
-                </dd>
-              </div>
-            </dl>
-          </JsonPanel>
-        </div>
-
-        <JsonPanel
-          title="Size breakdown"
-          icon="icon-[solar--archive-minimalistic-linear]"
-          :badge="`${minifySaving} smaller minified`"
-        >
-          <div class="p-3">
-            <JsonChart
-              type="bar"
-              horizontal
-              :height="7.5"
-              :categories="sizeChart.categories"
-              :series="sizeChart.series"
-              :formatter="formatBytes"
+      <template #b>
+        <div v-if="stats" class="flex min-h-0 flex-col gap-3 overflow-y-auto">
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <JsonStatCard
+              label="Characters"
+              :value="format(stats.characters)"
+              :hint="`${format(stats.charactersNoWhitespace)} without whitespace`"
+              icon="icon-[solar--text-field-linear]"
+            />
+            <JsonStatCard
+              label="Nodes"
+              :value="format(stats.totalNodes)"
+              :hint="`${format(stats.lines)} lines`"
+              icon="icon-[solar--structure-linear]"
+            />
+            <JsonStatCard
+              label="Size"
+              :value="formatBytes(stats.bytes)"
+              :hint="`minified ${formatBytes(stats.minifiedBytes)}`"
+              icon="icon-[solar--database-linear]"
+            />
+            <JsonStatCard
+              label="Gzip"
+              :value="gzipLabel"
+              :hint="gzipHint"
+              icon="icon-[solar--archive-minimalistic-linear]"
             />
           </div>
-        </JsonPanel>
-      </div>
 
-      <UiAppEmptyState
-        v-else
-        class="border border-border bg-card"
-        icon="icon-[solar--chart-square-linear]"
-        :variant="store.isEmpty ? 'neutral' : store.scanning ? 'info' : 'danger'"
-        :title="
-          store.scanning
-            ? 'Indexing the document…'
-            : store.isEmpty
-              ? 'Nothing to analyze yet'
-              : 'Invalid JSON'
-        "
-        :description="
-          store.scanning
-            ? 'Statistics are collected during the index pass.'
-            : store.isEmpty
-              ? 'Paste or open a document to see counts, size, depth and key statistics.'
-              : store.error?.message
-        "
-      >
-        <UiAppButton
-          v-if="store.isEmpty && showSampleData"
-          variant="primary"
-          label="Load sample"
-          @click="store.loadSample"
-        />
-        <UiAppButton
-          v-else-if="store.isEmpty"
-          variant="primary"
-          icon="icon-[solar--upload-minimalistic-linear]"
-          label="Open a file"
-          @click="open"
-        />
-      </UiAppEmptyState>
-    </div>
-  </div>
+          <div class="grid gap-3 lg:grid-cols-2">
+            <JsonPanel
+              title="Value types"
+              icon="icon-[solar--pallete-2-linear]"
+              :badge="`${format(stats.totalNodes)} nodes`"
+            >
+              <div class="p-3">
+                <JsonChart
+                  type="bar"
+                  horizontal
+                  stacked
+                  :height="3.5"
+                  :categories="typeChart.categories"
+                  :series="typeChart.series"
+                  :fills="typeChart.fills"
+                  :formatter="format"
+                />
+                <ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 border-t border-border/60 pt-2">
+                  <li
+                    v-for="(row, slot) in typeRows"
+                    :key="row.type"
+                    class="flex items-center gap-1.5 text-[11px]"
+                  >
+                    <span
+                      class="size-2 shrink-0"
+                      :style="{ background: typeChart.swatches[slot] }"
+                      aria-hidden="true"
+                    />
+                    <span class="text-muted-foreground capitalize">{{ row.type }}</span>
+                    <span class="font-mono text-foreground tabular-nums">
+                      {{ format(row.count) }}
+                    </span>
+                    <span class="font-mono text-muted-foreground tabular-nums">
+                      {{ row.percent }}%
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </JsonPanel>
+
+            <JsonPanel
+              title="Nesting profile"
+              icon="icon-[solar--layers-linear]"
+              :badge="`${stats.depth} levels`"
+            >
+              <div class="p-3">
+                <JsonChart
+                  type="area"
+                  :height="13"
+                  :categories="depthChart.categories"
+                  :series="depthChart.series"
+                  :formatter="format"
+                />
+                <p class="mt-2 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+                  Nodes at each level of nesting. Level
+                  <span class="font-mono text-foreground tabular-nums">
+                    {{ depthChart.peak.level }}
+                  </span>
+                  is the busiest, holding
+                  <span class="font-mono text-foreground tabular-nums">
+                    {{ format(depthChart.peak.count) }}
+                  </span>
+                  of them.
+                </p>
+              </div>
+            </JsonPanel>
+          </div>
+
+          <div class="grid gap-3 lg:grid-cols-2">
+            <JsonPanel
+              title="Most repeated keys"
+              icon="icon-[solar--hashtag-linear]"
+              :badge="keysBadge"
+            >
+              <div v-if="keyChart.categories.length" class="p-3">
+                <JsonChart
+                  type="bar"
+                  horizontal
+                  :height="Math.max(9, keyChart.categories.length * 1.5)"
+                  :categories="keyChart.categories"
+                  :series="keyChart.series"
+                  :formatter="format"
+                />
+              </div>
+              <p v-else class="p-3 text-sm text-muted-foreground">
+                No object keys in this document.
+              </p>
+            </JsonPanel>
+
+            <JsonPanel title="Structure" icon="icon-[solar--ruler-cross-pen-linear]">
+              <dl class="divide-y divide-border/60 font-mono text-xs">
+                <div
+                  v-for="row in structureRows"
+                  :key="row.label"
+                  class="flex items-center justify-between gap-3 px-2.5 py-1.5 hover:bg-accent"
+                >
+                  <dt class="shrink-0 text-muted-foreground">{{ row.label }}</dt>
+                  <dd
+                    class="max-w-[60%] truncate text-end font-mono text-foreground tabular-nums"
+                    :title="String(row.value)"
+                  >
+                    {{ row.value }}
+                  </dd>
+                </div>
+              </dl>
+            </JsonPanel>
+          </div>
+
+          <JsonPanel
+            title="Size breakdown"
+            icon="icon-[solar--archive-minimalistic-linear]"
+            :badge="`${minifySaving} smaller minified`"
+          >
+            <div class="p-3">
+              <JsonChart
+                type="bar"
+                horizontal
+                :height="7.5"
+                :categories="sizeChart.categories"
+                :series="sizeChart.series"
+                :fills="sizeChart.fills"
+                :formatter="formatBytes"
+              />
+            </div>
+          </JsonPanel>
+        </div>
+
+        <UiAppEmptyState
+          v-else
+          class="border border-border bg-card"
+          icon="icon-[solar--chart-square-linear]"
+          :variant="store.isEmpty ? 'neutral' : store.scanning ? 'info' : 'danger'"
+          :title="
+            store.scanning
+              ? 'Indexing the document…'
+              : store.isEmpty
+                ? 'Nothing to analyze yet'
+                : 'Invalid JSON'
+          "
+          :description="
+            store.scanning
+              ? 'Statistics are collected during the index pass.'
+              : store.isEmpty
+                ? 'Paste or open a document to see counts, size, depth and key statistics.'
+                : store.error?.message
+          "
+        >
+          <UiAppButton
+            v-if="store.isEmpty && showSampleData"
+            variant="primary"
+            label="Load sample"
+            @click="store.loadSample"
+          />
+          <UiAppButton
+            v-else-if="store.isEmpty"
+            variant="primary"
+            icon="icon-[solar--upload-minimalistic-linear]"
+            label="Open a file"
+            @click="open"
+          />
+        </UiAppEmptyState>
+      </template>
+    </JsonSplitPane>
+  </JsonWorkbench>
 </template>
 
 <script setup lang="ts">
   import { formatBytes, gzipSize, pathOf } from '@/lib/json';
+  import {
+    SIZE_RAMP,
+    VALUE_TYPE_FILLS,
+    VALUE_TYPE_SLOTS,
+    VALUE_TYPE_SWATCHES,
+  } from '@/config/charts';
   import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
   import { showSampleData, showSampledMarkers } from '@/composables/usePreferences';
+  import { useTheme } from '@/composables/useTheme';
 
   definePage({
     route: '/analyze',
@@ -230,6 +258,7 @@
   const GZIP_LIMIT = 32 * 1024 * 1024;
 
   const { store, open } = useJsonWorkspace();
+  const { theme } = useTheme();
 
   const gzip = ref<number | null>(null);
   const gzipSkipped = ref(false);
@@ -249,21 +278,25 @@
     return `${Math.round((gzip.value / stats.value.bytes) * 100)}% of raw size`;
   });
 
+  // Fixed slot order, not sorted by count: colour is bound to the value type, so a document
+  // whose shape changes must not repaint the types that did not change.
   const typeRows = computed(() => {
     if (!stats.value) return [];
     const total = stats.value.totalNodes || 1;
-    return Object.entries(stats.value.counts)
-      .map(([type, count]) => ({ type, count, percent: Math.round((count / total) * 100) }))
-      .sort((a, b) => b.count - a.count);
+    return VALUE_TYPE_SLOTS.map((type) => ({
+      type,
+      count: stats.value?.counts[type] ?? 0,
+      percent: Math.round(((stats.value?.counts[type] ?? 0) / total) * 100),
+    }));
   });
 
-  const typeChart = computed(() => {
-    const present = typeRows.value.filter((row) => row.count > 0);
-    return {
-      categories: present.map((row) => row.type),
-      series: [{ name: 'Nodes', data: present.map((row) => row.count) }],
-    };
-  });
+  /** One series per type, each a single segment, so they read as one part-to-whole strip. */
+  const typeChart = computed(() => ({
+    categories: ['Nodes'],
+    series: typeRows.value.map((row) => ({ name: row.type, data: [row.count] })),
+    fills: VALUE_TYPE_FILLS[theme.value],
+    swatches: VALUE_TYPE_SWATCHES[theme.value],
+  }));
 
   /** Levels past this fold into one trailing bucket, so a deep document stays readable. */
   const DEPTH_LEVELS = 14;
@@ -310,7 +343,12 @@
       data.push(gzip.value);
     }
 
-    return { categories, series: [{ name: 'Bytes', data }] };
+    // One measure shrinking, so each step takes the next rung of a single-hue ramp.
+    return {
+      categories,
+      series: [{ name: 'Bytes', data }],
+      fills: SIZE_RAMP[theme.value].slice(0, data.length),
+    };
   });
 
   const minifySaving = computed(() => {

@@ -125,9 +125,21 @@
 
   /* Everything the viewport spends on chrome: the main element's py-3 top and bottom plus
      the status line. Panels claim what is left. svh, not vh, so mobile browsers do not
-     measure against a toolbar that is about to slide away. */
+     measure against a toolbar that is about to slide away.
+
+     Once a page toolbar sticks under the header, main's top padding is replaced by the gap
+     below the toolbar — same 12px either way, so this total holds in both states. */
   --chrome-h: 3.25rem;
+
+  /* The no-toolbar height. A custom property substitutes its var()s where it is declared, so
+     a page cannot widen this by overriding an input further down the tree — Workbench instead
+     redeclares --panel-h on its own root with its measured toolbar subtracted. Keep the two
+     formulas in step. */
   --panel-h: calc(100svh - var(--header-h) - var(--chrome-h));
+
+  /* One editor height for every tool below `lg`, where panels stack instead of filling the
+     viewport. Shared so moving between tools never resizes the document you are reading. */
+  --editor-h: 50svh;
 }
 
 [data-theme='light'] {

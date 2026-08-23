@@ -1,7 +1,7 @@
 <template>
   <div :style="{ height: `${height}rem` }">
     <ApexChart
-      :key="theme"
+      :key="`${theme}-${type}`"
       :type="type"
       height="100%"
       width="100%"
@@ -13,50 +13,68 @@
 
 <script setup lang="ts">
   import type { ApexOptions } from 'apexcharts';
+  import { SERIES_FILL } from '@/config/charts';
   import { useTheme } from '@/composables/useTheme';
 
   // Charting only the analyze page needs, so it stays out of the entry chunk — and only the
-  // bar/column renderer is registered, not every ApexCharts type.
+  // renderers this app draws with are registered, not every ApexCharts type.
   const ApexChart = defineAsyncComponent(async () => {
     const [component] = await Promise.all([
       import('vue3-apexcharts/core'),
       import('apexcharts/bar'),
+      import('apexcharts/area'),
     ]);
     return component.default;
   });
 
   const props = withDefaults(
     defineProps<{
-      type: 'bar';
+      type: 'bar' | 'area';
       series: Array<{ name: string; data: number[] }>;
       /** Category labels, in the same order as the single series. */
       categories: string[];
       /** Chart body height in rem, so it scales with the root font size. */
       height?: number;
       horizontal?: boolean;
-      /** Turns a raw value into the text shown on the bar end and in the tooltip. */
+      /** Lays the series end to end in one bar — a part-to-whole strip. */
+      stacked?: boolean;
+      /** One fill per series. Omit for the single-hue magnitude default. */
+      fills?: string[];
+      /** Turns a raw value into the text shown on the mark and in the tooltip. */
       formatter?: (value: number) => string;
     }>(),
-    { height: 13, horizontal: false, formatter: (value: number) => value.toLocaleString('en-US') },
+    {
+      height: 13,
+      horizontal: false,
+      stacked: false,
+      fills: undefined,
+      formatter: (value: number) => value.toLocaleString('en-US'),
+    },
   );
-
-  // Deliberately calmer than --primary. A large fill of #00e05c fails the dataviz checker's
-  // lightness band against the dark canvas and glares; these two pass band, chroma floor and
-  // 3:1 contrast on both surfaces. Re-run the checker before changing them.
-  const MARK_COLOR = { light: '#0f7a3d', dark: '#16a34a' } as const;
 
   const { theme, colors } = useTheme();
 
+  const fills = computed(() => props.fills ?? [SERIES_FILL[theme.value]]);
+
   // Bar-end labels are drawn outside the mark, so the scale needs headroom or the widest
-  // bar pushes its own label past the plot edge.
+  // bar pushes its own label past the plot edge. A stack already fills its track.
   const axisMax = computed(() => {
+    if (props.stacked) return undefined;
     const peak = Math.max(0, ...props.series.flatMap((entry) => entry.data));
     return peak > 0 ? peak * 1.22 : undefined;
   });
 
+  /** Only a lone horizontal bar has room to carry a value at its end. */
+  const showValueLabels = computed(() => props.horizontal && !props.stacked);
+
+  // Several fills across a single series can only mean one fill per category — an ordinal
+  // ramp. ApexCharts keys `colors` by series unless the bars are distributed.
+  const distributed = computed(() => fills.value.length > 1 && props.series.length === 1);
+
   const options = computed<ApexOptions>(() => ({
     chart: {
-      type: 'bar',
+      type: props.type,
+      stacked: props.stacked,
       toolbar: { show: false },
       zoom: { enabled: false },
       background: 'transparent',
@@ -65,28 +83,45 @@
       animations: { enabled: true, speed: 240 },
     },
     theme: { mode: theme.value },
-    colors: [MARK_COLOR[theme.value]],
+    colors: fills.value,
     plotOptions: {
       bar: {
         horizontal: props.horizontal,
+        distributed: distributed.value,
         borderRadius: 0,
         borderRadiusApplication: 'end',
-        barHeight: '62%',
+        barHeight: props.stacked ? '100%' : '62%',
         columnWidth: '58%',
         dataLabels: { position: 'top' },
       },
     },
+    // A 2px surface gap between stacked segments, so touching fills stay countable.
+    // `straight`, never `smooth`: the categories are discrete buckets, and a spline would
+    // draw values between them that the document does not contain.
+    stroke: props.stacked
+      ? { show: true, width: 2, colors: [colors.value.card] }
+      : { show: props.type === 'area', width: 2, curve: 'straight' },
+    // ApexCharts paints bar fills at 0.85 over the surface and ignores `fill.opacity`, so the
+    // palettes in config/charts.ts are pre-compensated for that blend rather than fought here.
+    fill:
+      props.type === 'area'
+        ? {
+            type: 'gradient',
+            gradient: { shadeIntensity: 0, opacityFrom: 0.32, opacityTo: 0.04, stops: [0, 100] },
+          }
+        : { type: 'solid' },
     dataLabels: {
-      enabled: props.horizontal,
+      enabled: showValueLabels.value,
       textAnchor: 'start',
       offsetX: 8,
       formatter: (value) => props.formatter(Number(value)),
       style: { fontSize: '0.6875rem', fontWeight: 500, colors: [colors.value.mutedForeground] },
     },
+    markers: { size: 0, hover: { size: 5 } },
     grid: {
       borderColor: colors.value.border,
       strokeDashArray: 0,
-      padding: { top: 0, right: props.horizontal ? 32 : 4, bottom: 0, left: 4 },
+      padding: { top: 0, right: showValueLabels.value ? 32 : 4, bottom: 0, left: 4 },
       xaxis: { lines: { show: props.horizontal } },
       yaxis: { lines: { show: !props.horizontal } },
     },
@@ -103,6 +138,7 @@
     },
     yaxis: {
       labels: {
+        show: !props.stacked,
         style: { colors: colors.value.mutedForeground, fontSize: '0.6875rem' },
         formatter: (value) => (props.horizontal ? String(value) : props.formatter(Number(value))),
       },
@@ -110,6 +146,8 @@
     states: { hover: { filter: { type: 'lighten' } } },
     tooltip: {
       theme: theme.value,
+      shared: props.stacked,
+      intersect: false,
       y: { formatter: (value) => props.formatter(Number(value)) },
     },
     legend: { show: false },

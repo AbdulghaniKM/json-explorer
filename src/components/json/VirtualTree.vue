@@ -13,9 +13,9 @@
           class="group flex items-center gap-1.5 whitespace-nowrap"
           :class="[
             row.active
-              ? 'bg-primary/20'
+              ? 'bg-primary/20 outline-2 -outline-offset-2 outline-primary'
               : row.match
-                ? 'bg-warning/20'
+                ? 'bg-warning/8 outline-1 -outline-offset-1 outline-warning/70 outline-dashed'
                 : row.selected
                   ? 'bg-muted'
                   : 'hover:bg-muted/60',

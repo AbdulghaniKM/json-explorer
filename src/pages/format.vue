@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col gap-3">
-    <div class="flex flex-wrap items-center gap-2">
+  <JsonWorkbench>
+    <template #toolbar>
       <UiAppButton
         variant="primary"
         size="sm"
@@ -89,114 +89,127 @@
           @click="store.undo"
         />
       </div>
-    </div>
+    </template>
 
-    <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <JsonEditor
-        v-model="store.source"
-        label="Editor"
-        class="h-[60vh] lg:h-(--panel-h)"
-        :error="store.error"
-        :valid="store.isValid"
-        :lines="store.stats?.lines ?? null"
-        @file="onFileLoaded"
-      >
-        <template #actions>
-          <UiAppButton
-            icon="icon-[solar--upload-minimalistic-linear]"
-            icon-only
-            size="xs"
-            tooltip="Open a file"
-            @click="open"
-          />
-          <UiAppButton
-            icon="icon-[solar--copy-linear]"
-            icon-only
-            size="xs"
-            tooltip="Copy"
-            @click="copyAll"
-          />
-          <UiAppButton
-            icon="icon-[solar--download-minimalistic-linear]"
-            icon-only
-            size="xs"
-            tooltip="Download"
-            @click="save"
-          />
-          <UiAppButton
-            v-if="showSampleData"
-            icon="icon-[solar--document-add-linear]"
-            icon-only
-            size="xs"
-            tooltip="Load the sample"
-            @click="store.loadSample"
-          />
-          <UiAppButton
-            icon="icon-[solar--trash-bin-minimalistic-linear]"
-            icon-only
-            size="xs"
-            tooltip="Clear"
-            @click="store.clear"
-          />
-        </template>
-        <template #error-action>
-          <button
-            type="button"
-            class="ms-auto font-medium text-primary hover:underline"
-            @click="run('repair')"
-          >
-            Try to fix it
-          </button>
-        </template>
-      </JsonEditor>
-
-      <div class="flex flex-col gap-3">
-        <JsonPanel title="Document" icon="icon-[solar--file-text-linear]">
-          <dl class="divide-y divide-border/60 font-mono text-xs">
-            <div
-              v-for="row in summary"
-              :key="row.label"
-              class="flex items-center justify-between gap-3 px-2.5 py-1.5 hover:bg-accent"
-            >
-              <dt class="shrink-0 text-muted-foreground">{{ row.label }}</dt>
-              <dd class="font-mono text-foreground tabular-nums">{{ row.value }}</dd>
-            </div>
-          </dl>
-        </JsonPanel>
-
-        <JsonPanel title="Large documents" icon="icon-[solar--bolt-linear]">
-          <div class="space-y-2 p-3 text-sm text-muted-foreground">
-            <p>
-              Beautify, minify and sort stream straight from the source text using the index, so
-              they never build an in-memory copy of the document. They run in a worker.
-            </p>
-            <p>Repair, drop-empties and escape need the whole document in memory and are capped.</p>
-          </div>
-        </JsonPanel>
-
-        <JsonPanel title="Messy input?" icon="icon-[solar--broom-linear]">
-          <div class="space-y-3 p-3 text-sm text-muted-foreground">
-            <p>
-              Repair reads the document the way a parser would and rebuilds it: missing commas,
-              colons and brackets, single or smart quotes, bare keys and values, comments,
-              Python-style
-              <code class="font-mono text-foreground">True/False/None</code>
-              , malformed numbers, chat prose and code fences, and several documents in one paste.
-            </p>
-            <p>It reports what it changed, so nothing is corrected silently.</p>
+    <JsonSplitPane
+      storage-key="format"
+      :initial="68"
+      :min="35"
+      :max="85"
+      label="Resize the editor and the document panels"
+      class="lg:h-(--panel-h)"
+    >
+      <template #a>
+        <JsonEditor
+          v-model="store.source"
+          label="Editor"
+          class="h-(--editor-h) lg:h-auto"
+          :error="store.error"
+          :valid="store.isValid"
+          :lines="store.stats?.lines ?? null"
+          @file="onFileLoaded"
+        >
+          <template #actions>
             <UiAppButton
-              variant="surface"
-              size="sm"
-              icon="icon-[solar--document-add-linear]"
-              label="Load a messy example"
-              full-width
-              @click="store.loadMessy"
+              icon="icon-[solar--upload-minimalistic-linear]"
+              icon-only
+              size="xs"
+              tooltip="Open a file"
+              @click="open"
             />
-          </div>
-        </JsonPanel>
-      </div>
-    </div>
-  </div>
+            <UiAppButton
+              icon="icon-[solar--copy-linear]"
+              icon-only
+              size="xs"
+              tooltip="Copy"
+              @click="copyAll"
+            />
+            <UiAppButton
+              icon="icon-[solar--download-minimalistic-linear]"
+              icon-only
+              size="xs"
+              tooltip="Download"
+              @click="save"
+            />
+            <UiAppButton
+              v-if="showSampleData"
+              icon="icon-[solar--document-add-linear]"
+              icon-only
+              size="xs"
+              tooltip="Load the sample"
+              @click="store.loadSample"
+            />
+            <UiAppButton
+              icon="icon-[solar--trash-bin-minimalistic-linear]"
+              icon-only
+              size="xs"
+              tooltip="Clear"
+              @click="store.clear"
+            />
+          </template>
+          <template #error-action>
+            <button
+              type="button"
+              class="ms-auto font-medium text-primary hover:underline"
+              @click="run('repair')"
+            >
+              Try to fix it
+            </button>
+          </template>
+        </JsonEditor>
+      </template>
+
+      <template #b>
+        <div class="flex min-h-0 flex-col gap-3 overflow-y-auto">
+          <JsonPanel title="Document" icon="icon-[solar--file-text-linear]">
+            <dl class="divide-y divide-border/60 font-mono text-xs">
+              <div
+                v-for="row in summary"
+                :key="row.label"
+                class="flex items-center justify-between gap-3 px-2.5 py-1.5 hover:bg-accent"
+              >
+                <dt class="shrink-0 text-muted-foreground">{{ row.label }}</dt>
+                <dd class="font-mono text-foreground tabular-nums">{{ row.value }}</dd>
+              </div>
+            </dl>
+          </JsonPanel>
+
+          <JsonPanel title="Large documents" icon="icon-[solar--bolt-linear]">
+            <div class="space-y-2 p-3 text-sm text-muted-foreground">
+              <p>
+                Beautify, minify and sort stream straight from the source text using the index, so
+                they never build an in-memory copy of the document. They run in a worker.
+              </p>
+              <p>
+                Repair, drop-empties and escape need the whole document in memory and are capped.
+              </p>
+            </div>
+          </JsonPanel>
+
+          <JsonPanel title="Messy input?" icon="icon-[solar--broom-linear]">
+            <div class="space-y-3 p-3 text-sm text-muted-foreground">
+              <p>
+                Repair reads the document the way a parser would and rebuilds it: missing commas,
+                colons and brackets, single or smart quotes, bare keys and values, comments,
+                Python-style
+                <code class="font-mono text-foreground">True/False/None</code>
+                , malformed numbers, chat prose and code fences, and several documents in one paste.
+              </p>
+              <p>It reports what it changed, so nothing is corrected silently.</p>
+              <UiAppButton
+                variant="surface"
+                size="sm"
+                icon="icon-[solar--document-add-linear]"
+                label="Load a messy example"
+                full-width
+                @click="store.loadMessy"
+              />
+            </div>
+          </JsonPanel>
+        </div>
+      </template>
+    </JsonSplitPane>
+  </JsonWorkbench>
 </template>
 
 <script setup lang="ts">

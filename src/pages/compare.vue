@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col gap-3">
-    <div class="flex flex-wrap items-center gap-2">
+  <JsonWorkbench>
+    <template #toolbar>
       <UiAppButton
         variant="surface"
         size="sm"
@@ -41,80 +41,104 @@
           </template>
         </template>
       </div>
-    </div>
+    </template>
 
-    <div class="grid gap-3 lg:grid-cols-2">
-      <JsonEditor
-        v-model="store.source"
-        label="A — original"
-        class="h-[32vh]"
-        :error="store.error"
-        :valid="store.isValid"
-        :lines="store.stats?.lines ?? null"
-      >
-        <template #actions>
-          <UiAppButton
-            icon="icon-[solar--upload-minimalistic-linear]"
-            icon-only
-            size="xs"
-            tooltip="Open a file"
-            @click="openInto('source')"
-          />
-          <UiAppButton
-            icon="icon-[solar--magic-stick-3-linear]"
-            icon-only
-            size="xs"
-            tooltip="Beautify"
-            @click="beautify"
-          />
-        </template>
-      </JsonEditor>
-
-      <JsonEditor
-        v-model="store.compare"
-        label="B — changed"
-        class="h-[32vh]"
-        :error="store.compareError"
-        :valid="store.compareError === null && store.compare.trim().length > 0"
-        :lines="store.compareStats?.lines ?? null"
-      >
-        <template #actions>
-          <UiAppButton
-            icon="icon-[solar--upload-minimalistic-linear]"
-            icon-only
-            size="xs"
-            tooltip="Open a file"
-            @click="openInto('compare')"
-          />
-          <UiAppButton
-            icon="icon-[solar--copy-linear]"
-            icon-only
-            size="xs"
-            tooltip="Copy A into B"
-            @click="store.setCompare(store.source)"
-          />
-        </template>
-      </JsonEditor>
-    </div>
-
-    <JsonPanel
-      title="Differences"
-      icon="icon-[solar--transfer-horizontal-linear]"
-      :badge="changeBadge"
-      class="min-h-[38vh]"
+    <JsonSplitPane
+      direction="vertical"
+      storage-key="compare:rows"
+      :initial="48"
+      :min="20"
+      :max="80"
+      label="Resize the documents and the differences"
+      class="lg:h-(--panel-h)"
     >
-      <JsonDiffTree v-if="root" :root="root" :only-changes="onlyChanges" class="flex-1" />
+      <template #a>
+        <JsonSplitPane
+          storage-key="compare:sides"
+          :initial="50"
+          :min="20"
+          :max="80"
+          label="Resize document A and document B"
+        >
+          <template #a>
+            <JsonEditor
+              v-model="store.source"
+              label="A — original"
+              class="h-(--editor-h) lg:h-auto"
+              :error="store.error"
+              :valid="store.isValid"
+              :lines="store.stats?.lines ?? null"
+            >
+              <template #actions>
+                <UiAppButton
+                  icon="icon-[solar--upload-minimalistic-linear]"
+                  icon-only
+                  size="xs"
+                  tooltip="Open a file"
+                  @click="openInto('source')"
+                />
+                <UiAppButton
+                  icon="icon-[solar--magic-stick-3-linear]"
+                  icon-only
+                  size="xs"
+                  tooltip="Beautify"
+                  @click="beautify"
+                />
+              </template>
+            </JsonEditor>
+          </template>
 
-      <UiAppEmptyState
-        v-else
-        class="flex-1"
-        :icon="comparing ? 'icon-[solar--bolt-linear]' : 'icon-[solar--danger-triangle-linear]'"
-        :variant="comparing ? 'info' : 'danger'"
-        :title="comparing ? 'Comparing in a worker…' : 'Cannot compare yet'"
-        :description="comparing ? 'Both documents are parsed off the main thread.' : message"
-      />
-    </JsonPanel>
-  </div>
+          <template #b>
+            <JsonEditor
+              v-model="store.compare"
+              label="B — changed"
+              class="h-(--editor-h) lg:h-auto"
+              :error="store.compareError"
+              :valid="store.compareError === null && store.compare.trim().length > 0"
+              :lines="store.compareStats?.lines ?? null"
+            >
+              <template #actions>
+                <UiAppButton
+                  icon="icon-[solar--upload-minimalistic-linear]"
+                  icon-only
+                  size="xs"
+                  tooltip="Open a file"
+                  @click="openInto('compare')"
+                />
+                <UiAppButton
+                  icon="icon-[solar--copy-linear]"
+                  icon-only
+                  size="xs"
+                  tooltip="Copy A into B"
+                  @click="store.setCompare(store.source)"
+                />
+              </template>
+            </JsonEditor>
+          </template>
+        </JsonSplitPane>
+      </template>
+
+      <template #b>
+        <JsonPanel
+          title="Differences"
+          icon="icon-[solar--transfer-horizontal-linear]"
+          :badge="changeBadge"
+          class="min-h-[38svh] lg:min-h-0"
+        >
+          <JsonDiffTree v-if="root" :root="root" :only-changes="onlyChanges" class="flex-1" />
+
+          <UiAppEmptyState
+            v-else
+            class="flex-1"
+            :icon="comparing ? 'icon-[solar--bolt-linear]' : 'icon-[solar--danger-triangle-linear]'"
+            :variant="comparing ? 'info' : 'danger'"
+            :title="comparing ? 'Comparing in a worker…' : 'Cannot compare yet'"
+            :description="comparing ? 'Both documents are parsed off the main thread.' : message"
+          />
+        </JsonPanel>
+      </template>
+    </JsonSplitPane>
+  </JsonWorkbench>
 </template>
 
 <script setup lang="ts">

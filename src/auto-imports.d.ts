@@ -16,7 +16,12 @@ declare global {
   const EXPAND_ALL_LIMIT: typeof import('./composables/useJsonTree').EXPAND_ALL_LIMIT
   const EffectScope: typeof import('vue').EffectScope
   const JSON_TREE_KEY: typeof import('./composables/useJsonTree').JSON_TREE_KEY
+  const SERIES_FILL: typeof import('./config/charts').SERIES_FILL
+  const SIZE_RAMP: typeof import('./config/charts').SIZE_RAMP
   const TOOLS: typeof import('./config/tools').TOOLS
+  const VALUE_TYPE_FILLS: typeof import('./config/charts').VALUE_TYPE_FILLS
+  const VALUE_TYPE_SLOTS: typeof import('./config/charts').VALUE_TYPE_SLOTS
+  const VALUE_TYPE_SWATCHES: typeof import('./config/charts').VALUE_TYPE_SWATCHES
   const VARIANT_MAP: typeof import('./types/text.types').VARIANT_MAP
   const acceptHMRUpdate: typeof import('pinia').acceptHMRUpdate
   const appConfig: typeof import('./config/app.config').appConfig
@@ -173,6 +178,7 @@ declare global {
   const useBroadcastChannel: typeof import('@vueuse/core').useBroadcastChannel
   const useBrowserLocation: typeof import('@vueuse/core').useBrowserLocation
   const useCached: typeof import('@vueuse/core').useCached
+  const useCharWidth: typeof import('./composables/useCharWidth').useCharWidth
   const useClipboard: typeof import('./composables/useClipboard').useClipboard
   const useClipboardItems: typeof import('@vueuse/core').useClipboardItems
   const useCloned: typeof import('@vueuse/core').useCloned
@@ -402,7 +408,12 @@ declare module 'vue' {
     readonly EXPAND_ALL_LIMIT: UnwrapRef<typeof import('./composables/useJsonTree')['EXPAND_ALL_LIMIT']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly JSON_TREE_KEY: UnwrapRef<typeof import('./composables/useJsonTree')['JSON_TREE_KEY']>
+    readonly SERIES_FILL: UnwrapRef<typeof import('./config/charts')['SERIES_FILL']>
+    readonly SIZE_RAMP: UnwrapRef<typeof import('./config/charts')['SIZE_RAMP']>
     readonly TOOLS: UnwrapRef<typeof import('./config/tools')['TOOLS']>
+    readonly VALUE_TYPE_FILLS: UnwrapRef<typeof import('./config/charts')['VALUE_TYPE_FILLS']>
+    readonly VALUE_TYPE_SLOTS: UnwrapRef<typeof import('./config/charts')['VALUE_TYPE_SLOTS']>
+    readonly VALUE_TYPE_SWATCHES: UnwrapRef<typeof import('./config/charts')['VALUE_TYPE_SWATCHES']>
     readonly VARIANT_MAP: UnwrapRef<typeof import('./types/text.types')['VARIANT_MAP']>
     readonly acceptHMRUpdate: UnwrapRef<typeof import('pinia')['acceptHMRUpdate']>
     readonly appConfig: UnwrapRef<typeof import('./config/app.config')['appConfig']>
@@ -558,6 +569,7 @@ declare module 'vue' {
     readonly useBroadcastChannel: UnwrapRef<typeof import('@vueuse/core')['useBroadcastChannel']>
     readonly useBrowserLocation: UnwrapRef<typeof import('@vueuse/core')['useBrowserLocation']>
     readonly useCached: UnwrapRef<typeof import('@vueuse/core')['useCached']>
+    readonly useCharWidth: UnwrapRef<typeof import('./composables/useCharWidth')['useCharWidth']>
     readonly useClipboard: UnwrapRef<typeof import('./composables/useClipboard')['useClipboard']>
     readonly useClipboardItems: UnwrapRef<typeof import('@vueuse/core')['useClipboardItems']>
     readonly useCloned: UnwrapRef<typeof import('@vueuse/core')['useCloned']>

@@ -67,6 +67,9 @@ the viewer without hunting for a big file.
   values; comments; `True`/`False`/`None`, `NaN`/`undefined`; malformed numbers (`.5`, `007`,
   `0x1F`); unterminated strings; markdown code fences and chat prose; escaped documents from logs;
   and several documents in one paste. It reports every correction it made.
+- **Workbench layout** — every tool is one viewport tall with no page scroll: the toolbar stays
+  pinned under the header, and the panes carry a divider you can drag (or focus and nudge with the
+  arrow keys) to rebalance them. Each split is remembered per tool. Below `lg` the panes stack.
 - **Search** — matches keys and values, expands the path to each hit, and can hide everything that
   does not match.
 - **Shared workspace** — the document follows you between tools; documents under 500 kB are

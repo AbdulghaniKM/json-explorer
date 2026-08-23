@@ -36,29 +36,40 @@
 
     <div v-else class="relative min-h-0 flex-1">
       <div class="flex h-full min-h-0">
+        <!-- Each cell is as tall as the rows its line wraps onto, so the numbers stay level
+             with the code instead of drifting one row further off with every wrapped line. -->
         <div
-          ref="gutterRef"
-          class="hidden shrink-0 overflow-hidden border-e border-border bg-muted/30 py-3 text-end font-mono text-(length:--code-size) leading-(--code-line) text-muted-foreground/60 select-none sm:block"
+          class="hidden shrink-0 overflow-hidden border-e border-border bg-muted/30 text-end font-mono text-(length:--code-size) leading-(--code-line) text-muted-foreground/60 select-none sm:block"
           :style="{ width: gutterWidth }"
         >
-          <div
-            v-for="line in gutterLines"
-            :key="line"
-            class="px-2"
-            :class="line === error?.line ? 'bg-error/15 font-semibold text-error' : ''"
-          >
-            {{ line }}
+          <!-- Offset by transform rather than scrollTop. Assigning scrollTop clamps to the
+               content height, so a sync that lands before the cells have grown to their new
+               heights silently snaps the column back to zero and the numbers stop matching
+               the code. A transform has nothing to clamp against. -->
+          <div class="py-3" :style="{ transform: `translateY(${-scrollTop}px)` }">
+            <div
+              v-for="line in gutterLines"
+              :key="line.number"
+              class="px-2"
+              :class="line.number === error?.line ? 'bg-error/15 font-semibold text-error' : ''"
+              :style="{ height: `${line.rows * codeLine}px` }"
+            >
+              {{ line.number }}
+            </div>
           </div>
         </div>
 
-        <div class="relative min-w-0 flex-1">
+        <div ref="contentRef" class="relative min-w-0 flex-1">
           <pre
             v-if="useHighlight"
             ref="highlightRef"
             aria-hidden="true"
-            class="pointer-events-none absolute inset-0 overflow-hidden p-3 font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre"
+            class="pointer-events-none absolute inset-0 overflow-hidden p-3 font-mono text-(length:--code-size) leading-(--code-line) break-all whitespace-pre-wrap"
           ><code v-html="highlighted"></code></pre>
 
+          <!-- `break-all` on both layers, not just `pre-wrap`: breaking only at spaces would
+               put the overlay and the textarea on different rows for the same line, and the
+               gutter maths below assumes a break at the column edge. -->
           <textarea
             ref="textareaRef"
             :value="modelValue"
@@ -67,8 +78,8 @@
             spellcheck="false"
             autocomplete="off"
             autocapitalize="off"
-            wrap="off"
-            class="absolute inset-0 h-full w-full resize-none bg-transparent p-3 font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre caret-primary outline-none"
+            wrap="soft"
+            class="absolute inset-0 h-full w-full resize-none bg-transparent p-3 font-mono text-(length:--code-size) leading-(--code-line) break-all whitespace-pre-wrap caret-primary outline-none"
             :class="useHighlight ? 'text-transparent' : 'text-foreground'"
             @input="onInput"
             @scroll="syncScroll"
@@ -131,6 +142,7 @@
   import { useJsonFile } from '@/composables/useJsonFile';
   import JsonLineViewer from './LineViewer.vue';
   import { showSampleData } from '@/composables/usePreferences';
+  import { useCharWidth } from '@/composables/useCharWidth';
   import { DENSITY } from '@/config/density';
 
   const props = withDefaults(
@@ -169,9 +181,24 @@
 
   const textareaRef = ref<HTMLTextAreaElement | null>(null);
   const highlightRef = ref<HTMLPreElement | null>(null);
-  const gutterRef = ref<HTMLDivElement | null>(null);
+  const scrollTop = ref(0);
+  const contentRef = ref<HTMLElement | null>(null);
   const viewerRef = ref<InstanceType<typeof JsonLineViewer> | null>(null);
   const dragging = ref(false);
+
+  /** Matches the `p-3` on the textarea and its overlay. */
+  const TEXT_PADDING = 12;
+  const MIN_WRAP_CHARS = 20;
+  /** Numbering stops here; past it the document has already moved to the virtual viewer. */
+  const GUTTER_LIMIT = 5000;
+
+  const codeLine = DENSITY.codeLineHeight;
+  const { charWidth } = useCharWidth();
+  const contentWidth = ref(600);
+
+  useResizeObserver(contentRef, ([entry]) => {
+    contentWidth.value = entry.contentRect.width;
+  });
 
   const editable = computed(() => props.modelValue.length <= EDIT_LIMIT);
 
@@ -181,12 +208,25 @@
     return countLines(props.modelValue);
   });
 
-  const gutterLines = computed(() => {
-    const total = Math.min(lineCount.value, 5000);
-    return Array.from({ length: Math.max(total, 1) }, (_, position) => position + 1);
+  const gutterChars = computed(() => Math.max(3, String(lineCount.value).length + 1.5));
+  const gutterWidth = computed(() => `${gutterChars.value}ch`);
+
+  /** Characters that fit one row of the text column, which is where a soft wrap lands. */
+  const wrapChars = computed(() => {
+    const usable = contentWidth.value - TEXT_PADDING * 2;
+    return Math.max(MIN_WRAP_CHARS, Math.floor(usable / charWidth.value));
   });
 
-  const gutterWidth = computed(() => `${Math.max(3, String(lineCount.value).length + 1.5)}ch`);
+  const gutterLines = computed(() => {
+    const total = Math.min(lineCount.value, GUTTER_LIMIT);
+    if (total < 1) return [{ number: 1, rows: 1 }];
+
+    const lines = props.modelValue.split('\n', total);
+    return Array.from({ length: total }, (_, position) => ({
+      number: position + 1,
+      rows: Math.max(1, Math.ceil((lines[position]?.length ?? 0) / wrapChars.value)),
+    }));
+  });
 
   const useHighlight = computed(() => editable.value && props.modelValue.length <= HIGHLIGHT_LIMIT);
   const highlighted = computed(() =>
@@ -209,11 +249,8 @@
   const syncScroll = () => {
     const source = textareaRef.value;
     if (!source) return;
-    if (highlightRef.value) {
-      highlightRef.value.scrollTop = source.scrollTop;
-      highlightRef.value.scrollLeft = source.scrollLeft;
-    }
-    if (gutterRef.value) gutterRef.value.scrollTop = source.scrollTop;
+    scrollTop.value = source.scrollTop;
+    if (highlightRef.value) highlightRef.value.scrollTop = source.scrollTop;
   };
 
   const onTab = (event: KeyboardEvent) => {
@@ -266,7 +303,13 @@
 
   watch(
     () => props.modelValue,
-    () => nextTick(syncScroll),
+    () =>
+      nextTick(() => {
+        syncScroll();
+        // Typing near the end scrolls the textarea to the caret after layout, which is later
+        // than nextTick — catch that position too or the gutter trails by a screen.
+        requestAnimationFrame(syncScroll);
+      }),
   );
 
   defineExpose({ focus });

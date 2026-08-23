@@ -1,5 +1,9 @@
 <template>
-  <div ref="viewportRef" class="relative min-h-0 flex-1 overflow-auto" @scroll.passive="onScroll">
+  <div
+    ref="viewportRef"
+    class="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+    @scroll.passive="onScroll"
+  >
     <div :style="{ height: `${totalHeight}px` }" class="relative min-w-full">
       <div class="absolute inset-x-0 top-0" :style="{ transform: `translateY(${offsetY}px)` }">
         <div
@@ -16,7 +20,10 @@
             <span v-if="line.continued" :title="`Line ${line.number}, continued`">↳</span>
             <template v-else>{{ line.number }}</template>
           </span>
-          <div class="relative">
+          <!-- The guides sit outside the <pre>, so this wrapper has to carry the same font and
+               size or their `ch` measures a different character than the code does and every
+               level drifts a little further right. -->
+          <div class="relative min-w-0 flex-1 font-mono text-(length:--code-size)">
             <span
               v-for="level in line.guides"
               :key="level"
@@ -40,18 +47,26 @@
 <script setup lang="ts">
   import { highlightJson } from '@/lib/json';
   import { buildLineStarts, buildRowPrefix, lineOfRow, sliceForRow } from '@/lib/json/lines';
+  import { useCharWidth } from '@/composables/useCharWidth';
   import { DENSITY } from '@/config/density';
 
   const props = withDefaults(defineProps<{ text: string; errorLine?: number }>(), { errorLine: 0 });
 
+  /** The `ps-3` on each row, and room for the scrollbar so the last column never clips. */
+  const TEXT_INSET = 12;
+  const SCROLLBAR_ALLOWANCE = 14;
+
+  const { charWidth } = useCharWidth();
+
   const ROW_HEIGHT = DENSITY.codeLineHeight;
   const OVERSCAN = 10;
-  const MAX_LINE_CHARS = 2000;
+  const MIN_LINE_CHARS = 24;
   const MAX_GUIDES = 40;
 
   const viewportRef = ref<HTMLElement | null>(null);
   const scrollTop = ref(0);
   const viewportHeight = ref(600);
+  const viewportWidth = ref(800);
   const offsets = shallowRef<Uint32Array<ArrayBufferLike>>(new Uint32Array(0));
   const lineCount = ref(0);
   const unit = ref(2);
@@ -83,8 +98,6 @@
     if (!text) {
       offsets.value = new Uint32Array(0);
       lineCount.value = 0;
-      rowPrefix.value = new Uint32Array(0);
-      rowCount.value = 0;
       return;
     }
 
@@ -93,17 +106,36 @@
     const index = buildLineStarts(text);
     offsets.value = index.starts;
     lineCount.value = index.count;
+  };
 
-    // A minified document is a single enormous line. Rendering one row per source line
-    // would show only its first MAX_LINE_CHARS characters with nothing to scroll, so wrap
-    // long lines across as many display rows as they need.
-    const rows = buildRowPrefix(index, text.length, MAX_LINE_CHARS);
+  const gutterChars = computed(() => Math.max(3.5, String(lineCount.value).length + 1.5));
+  const gutterWidth = computed(() => `${gutterChars.value}ch`);
+
+  /**
+   * How many characters fit one row. Wrapping at the viewport edge is what keeps this viewer
+   * free of horizontal scrolling: rows stay a fixed height, which the virtualizer depends on,
+   * while a minified document still breaks across as many rows as it needs.
+   */
+  const wrapChars = computed(() => {
+    const gutter = gutterChars.value * charWidth.value;
+    const padding = TEXT_INSET + SCROLLBAR_ALLOWANCE;
+    const usable = viewportWidth.value - gutter - padding;
+    return Math.max(MIN_LINE_CHARS, Math.floor(usable / charWidth.value));
+  });
+
+  const buildRows = () => {
+    if (!offsets.value.length) {
+      rowPrefix.value = new Uint32Array(0);
+      rowCount.value = 0;
+      return;
+    }
+    const index = { starts: offsets.value, count: lineCount.value };
+    const rows = buildRowPrefix(index, props.text.length, wrapChars.value);
     rowPrefix.value = rows.prefix;
     rowCount.value = rows.rowCount;
   };
 
   const totalHeight = computed(() => rowCount.value * ROW_HEIGHT);
-  const gutterWidth = computed(() => `${Math.max(3.5, String(lineCount.value).length + 1.5)}ch`);
 
   const startRow = computed(() => Math.max(0, Math.floor(scrollTop.value / ROW_HEIGHT) - OVERSCAN));
   const endRow = computed(() =>
@@ -146,7 +178,7 @@
       // Rows ascend, so walk forward rather than binary searching each one.
       while (line + 1 < lineCount.value && prefix[line + 1] <= row) line++;
 
-      const slice = sliceForRow(index, rows, props.text.length, MAX_LINE_CHARS, row, line);
+      const slice = sliceForRow(index, rows, props.text.length, wrapChars.value, row, line);
       const raw = props.text.slice(slice.start, slice.end);
 
       out.push({
@@ -178,6 +210,7 @@
     const element = viewportRef.value;
     if (!element) return;
     viewportHeight.value = element.clientHeight;
+    viewportWidth.value = element.clientWidth;
     scrollTop.value = element.scrollTop;
   };
 
@@ -195,13 +228,15 @@
 
   watch(() => props.text, buildOffsets, { immediate: true });
 
-  onMounted(() => {
-    measure();
-    window.addEventListener('resize', measure);
-  });
+  // Rows depend on both the document and how wide a row may be, so a resize re-wraps rather
+  // than leaving the reader with rows cut to the old width.
+  watch([offsets, wrapChars], buildRows, { immediate: true });
+
+  useResizeObserver(viewportRef, measure);
+
+  onMounted(measure);
 
   onUnmounted(() => {
-    window.removeEventListener('resize', measure);
     if (frame) cancelAnimationFrame(frame);
   });
 
