@@ -197,6 +197,41 @@
   opacity: 0.55;
 }
 
+/*
+ * The editable code surface: one block per source line, numbered by a CSS counter rather than
+ * a second column of elements. Halving the nodes matters — a large document is tens of
+ * thousands of lines, and every one of them is laid out at once so the browser, not a
+ * calculation, decides where its text wraps.
+ */
+.code-lines {
+  counter-reset: code-line;
+}
+
+.code-line {
+  counter-increment: code-line;
+  position: relative;
+}
+
+.code-line::before {
+  content: counter(code-line);
+  position: absolute;
+  inset-inline-start: 0;
+  width: var(--gutter-w);
+  padding-inline-end: 0.5rem;
+  text-align: end;
+  color: var(--color-muted-foreground);
+  opacity: 0.6;
+  text-indent: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.code-line[data-error]::before {
+  color: var(--color-error);
+  font-weight: 600;
+  opacity: 1;
+}
+
 .line-guide {
   position: absolute;
   inset-block: 0;

@@ -12,12 +12,12 @@ const WRAP = 10;
 /** Reconstruct the document from the rows the viewer would draw. */
 const renderAllRows = (text: string, wrap = WRAP): string => {
   const index = buildLineStarts(text);
-  const rows = buildRowPrefix(index, text.length, wrap);
+  const rows = buildRowPrefix(text, index, text.length, wrap);
   const pieces: string[] = [];
 
   for (let row = 0; row < rows.rowCount; row++) {
     const line = lineOfRow(rows, index.count, row);
-    const slice = sliceForRow(index, rows, text.length, wrap, row, line);
+    const slice = sliceForRow(index, rows, text.length, row, line);
     pieces.push(text.slice(slice.start, slice.end));
     // A line ends when the next row belongs to a different line.
     const nextLine = row + 1 < rows.rowCount ? lineOfRow(rows, index.count, row + 1) : -1;
@@ -55,7 +55,7 @@ describe('buildLineStarts', () => {
 describe('buildRowPrefix', () => {
   const rowsFor = (text: string, wrap = WRAP) => {
     const index = buildLineStarts(text);
-    return buildRowPrefix(index, text.length, wrap);
+    return buildRowPrefix(text, index, text.length, wrap);
   };
 
   it('gives one row to each short line', () => {
@@ -91,7 +91,7 @@ describe('buildRowPrefix', () => {
 describe('lineOfRow', () => {
   const text = `${'a'.repeat(25)}\nb\n${'c'.repeat(15)}`;
   const index: LineIndex = buildLineStarts(text);
-  const rows = buildRowPrefix(index, text.length, WRAP);
+  const rows = buildRowPrefix(text, index, text.length, WRAP);
 
   it('maps every row to the line that owns it', () => {
     // line 0 => rows 0,1,2 | line 1 => row 3 | line 2 => rows 4,5
@@ -137,19 +137,19 @@ describe('sliceForRow', () => {
   it('numbers segments from zero within a line', () => {
     const text = 'x'.repeat(25);
     const index = buildLineStarts(text);
-    const rows = buildRowPrefix(index, text.length, WRAP);
-    expect(
-      [0, 1, 2].map((row) => sliceForRow(index, rows, text.length, WRAP, row, 0).segment),
-    ).toEqual([0, 1, 2]);
+    const rows = buildRowPrefix(text, index, text.length, WRAP);
+    expect([0, 1, 2].map((row) => sliceForRow(index, rows, text.length, row, 0).segment)).toEqual([
+      0, 1, 2,
+    ]);
   });
 
   it('never returns a slice extending past its line', () => {
     const text = `${'a'.repeat(25)}\nbb`;
     const index = buildLineStarts(text);
-    const rows = buildRowPrefix(index, text.length, WRAP);
+    const rows = buildRowPrefix(text, index, text.length, WRAP);
     for (let row = 0; row < rows.rowCount; row++) {
       const line = lineOfRow(rows, index.count, row);
-      const slice = sliceForRow(index, rows, text.length, WRAP, row, line);
+      const slice = sliceForRow(index, rows, text.length, row, line);
       expect(text.slice(slice.start, slice.end)).not.toContain('\n');
     }
   });

@@ -36,6 +36,9 @@
             />
             <pre
               class="ps-3 font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre"
+              :style="
+                line.indent ? { paddingInlineStart: `calc(0.75rem + ${line.indent}ch)` } : undefined
+              "
             ><code v-html="line.html"></code></pre>
           </div>
         </div>
@@ -46,7 +49,13 @@
 
 <script setup lang="ts">
   import { highlightJson } from '@/lib/json';
-  import { buildLineStarts, buildRowPrefix, lineOfRow, sliceForRow } from '@/lib/json/lines';
+  import {
+    buildLineStarts,
+    buildRowPrefix,
+    lineOfRow,
+    sliceForRow,
+    type RowIndex,
+  } from '@/lib/json/lines';
   import { useCharWidth } from '@/composables/useCharWidth';
   import { DENSITY } from '@/config/density';
 
@@ -61,6 +70,12 @@
   const ROW_HEIGHT = DENSITY.codeLineHeight;
   const OVERSCAN = 10;
   const MIN_LINE_CHARS = 24;
+  /**
+   * Width held back from every row so a wrapped one can be pushed in to its line's own
+   * indentation. Without it a continuation starts at the left edge and reads as a new key at
+   * the outermost level, which is the opposite of what the indentation is telling you.
+   */
+  const HANG_CHARS = 6;
   const MAX_GUIDES = 40;
 
   const viewportRef = ref<HTMLElement | null>(null);
@@ -71,7 +86,7 @@
   const lineCount = ref(0);
   const unit = ref(2);
   // Display rows, which differ from source lines once a long line is wrapped.
-  const rowPrefix = shallowRef<Uint32Array<ArrayBufferLike>>(new Uint32Array(0));
+  const rowIndex = shallowRef<RowIndex | null>(null);
   const rowCount = ref(0);
 
   const detectIndentUnit = (text: string): number => {
@@ -118,20 +133,20 @@
    */
   const wrapChars = computed(() => {
     const gutter = gutterChars.value * charWidth.value;
-    const padding = TEXT_INSET + SCROLLBAR_ALLOWANCE;
+    const padding = TEXT_INSET + SCROLLBAR_ALLOWANCE + HANG_CHARS * charWidth.value;
     const usable = viewportWidth.value - gutter - padding;
     return Math.max(MIN_LINE_CHARS, Math.floor(usable / charWidth.value));
   });
 
   const buildRows = () => {
     if (!offsets.value.length) {
-      rowPrefix.value = new Uint32Array(0);
+      rowIndex.value = null;
       rowCount.value = 0;
       return;
     }
     const index = { starts: offsets.value, count: lineCount.value };
-    const rows = buildRowPrefix(index, props.text.length, wrapChars.value);
-    rowPrefix.value = rows.prefix;
+    const rows = buildRowPrefix(props.text, index, props.text.length, wrapChars.value, HANG_CHARS);
+    rowIndex.value = rows;
     rowCount.value = rows.rowCount;
   };
 
@@ -146,46 +161,50 @@
   );
   const offsetY = computed(() => startRow.value * ROW_HEIGHT);
 
-  const leadingLevels = (raw: string): number => {
+  const leadingWidth = (raw: string): number => {
     let width = 0;
     for (let i = 0; i < raw.length; i++) {
       const code = raw.charCodeAt(i);
       if (code !== 32 && code !== 9) break;
       width++;
     }
-    return Math.min(Math.floor(width / unit.value), MAX_GUIDES);
+    return width;
   };
+
+  const leadingLevels = (width: number): number =>
+    Math.min(Math.floor(width / unit.value), MAX_GUIDES);
 
   const visibleLines = computed(() => {
     const starts = offsets.value;
-    const prefix = rowPrefix.value;
+    const rows = rowIndex.value;
     const out: Array<{
       key: number;
       number: number;
       html: string;
       guides: number;
+      indent: number;
       continued: boolean;
     }> = [];
-    if (!starts.length || !prefix.length) return out;
+    if (!starts.length || !rows) return out;
 
     const index = { starts, count: lineCount.value };
-    const rows = { prefix, rowCount: rowCount.value };
     const from = startRow.value;
     const to = endRow.value;
     let line = lineOfRow(rows, lineCount.value, from);
 
     for (let row = from; row < to; row++) {
       // Rows ascend, so walk forward rather than binary searching each one.
-      while (line + 1 < lineCount.value && prefix[line + 1] <= row) line++;
+      while (line + 1 < lineCount.value && rows.prefix[line + 1] <= row) line++;
 
-      const slice = sliceForRow(index, rows, props.text.length, wrapChars.value, row, line);
+      const slice = sliceForRow(index, rows, props.text.length, row, line);
       const raw = props.text.slice(slice.start, slice.end);
 
       out.push({
         key: row,
         number: line + 1,
         html: highlightJson(raw) || '&nbsp;',
-        guides: slice.segment === 0 ? leadingLevels(raw) : 0,
+        guides: slice.segment === 0 ? leadingLevels(leadingWidth(raw)) : 0,
+        indent: slice.indent,
         continued: slice.segment > 0,
       });
     }
@@ -219,9 +238,9 @@
     if (!element) return;
     // Source lines and display rows diverge once a long line wraps, so jump to the row
     // where the line actually starts.
-    const prefix = rowPrefix.value;
+    const prefix = rowIndex.value?.prefix;
     const index = Math.min(Math.max(0, line - 1), Math.max(0, lineCount.value - 1));
-    const row = prefix.length > index ? prefix[index] : index;
+    const row = prefix && prefix.length > index ? prefix[index] : index;
     element.scrollTop = Math.max(0, (row - 4) * ROW_HEIGHT);
     scrollTop.value = element.scrollTop;
   };
