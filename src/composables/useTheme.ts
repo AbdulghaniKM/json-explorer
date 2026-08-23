@@ -65,8 +65,7 @@ export const useTheme = () => {
     setTheme(currentTheme.value === 'light' ? 'dark' : 'light');
   };
 
-  const getColor = (colorKey: keyof ColorPalette): string =>
-    getColorValue(colorKey, currentTheme.value);
+  const getColor = (colorKey: keyof ColorPalette): string => getColorValue(colorKey);
 
   const colors = computed(() => appConfig.theme[currentTheme.value]);
 

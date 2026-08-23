@@ -34,6 +34,7 @@ declare module 'vue' {
     UiAppText: typeof import('./components/ui/AppText.vue')['default']
     UiAppToast: typeof import('./components/ui/AppToast.vue')['default']
     UiAppTooltip: typeof import('./components/ui/AppTooltip.vue')['default']
+    UiCommandPalette: typeof import('./components/ui/CommandPalette.vue')['default']
     UiSettingsMenu: typeof import('./components/ui/SettingsMenu.vue')['default']
     UiThemeToggle: typeof import('./components/ui/ThemeToggle.vue')['default']
   }

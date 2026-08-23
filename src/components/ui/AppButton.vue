@@ -2,7 +2,7 @@
   <AppTooltip v-if="tooltip" :content="tooltip" :placement="tooltipPlacement">
     <button
       :type="type"
-      class="btn-base inline-flex cursor-pointer items-center justify-center font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+      class="btn-base inline-flex cursor-pointer items-center justify-center font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
       :class="[sizeClass, variantClass, gapClass, roundedClass, fullWidth && 'w-full']"
       :disabled="disabled || loading"
       :aria-busy="loading || undefined"
@@ -18,7 +18,7 @@
   <button
     v-else
     :type="type"
-    class="btn-base inline-flex cursor-pointer items-center justify-center font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+    class="btn-base inline-flex cursor-pointer items-center justify-center font-medium transition-all duration-150 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1 focus-visible:ring-offset-background focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
     :class="[sizeClass, variantClass, gapClass, roundedClass, fullWidth && 'w-full']"
     :disabled="disabled || loading"
     :aria-busy="loading || undefined"
@@ -115,15 +115,15 @@
   const variantClass = computed(
     () =>
       ({
-        primary: 'bg-primary text-white shadow-sm hover:bg-primary/90 hover:shadow-md',
-        accent: 'bg-accent text-white shadow-sm hover:bg-accent/90 hover:shadow-md',
-        secondary: 'bg-muted text-white shadow-sm hover:bg-muted/90 hover:shadow-md',
+        primary: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md',
+        accent: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md',
+        secondary: 'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
         ghost: 'text-text-muted hover:bg-muted hover:text-text',
         muted: 'bg-muted/50 text-text-muted hover:bg-muted hover:text-text',
         danger: 'bg-error/10 text-error hover:bg-error/20',
         success: 'bg-success/10 text-success hover:bg-success/20',
         surface:
-          'bg-surface text-accent border border-border shadow-sm hover:bg-muted hover:shadow',
+          'bg-surface text-primary border border-border shadow-sm hover:bg-muted hover:shadow',
         outline: 'border border-border bg-transparent text-text hover:bg-muted',
       })[props.variant],
   );

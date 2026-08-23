@@ -1,19 +1,38 @@
+/**
+ * Named after shadcn/ui's token vocabulary, so a component lifted from a shadcn-shaped
+ * registry keeps its Tailwind classes and only needs its template translated.
+ *
+ * The four status colors are ours, not shadcn's: this app has to distinguish valid, invalid,
+ * repaired and informational states, which a lone `destructive` cannot express. `destructive`
+ * is carried alongside `error` at the same value purely so ported components resolve.
+ */
 export interface ColorPalette {
-  primary: string;
-  secondary: string;
-  accent: string;
   background: string;
-  surface: string;
-  text: string;
-  textSecondary: string;
+  foreground: string;
+  /** Panels, sitting one step above the canvas. */
+  card: string;
+  cardForeground: string;
+  /** Menus and popovers, which read as lifted rather than inset. */
+  popover: string;
+  popoverForeground: string;
+  primary: string;
+  primaryForeground: string;
+  secondary: string;
+  secondaryForeground: string;
+  /** A subtle surface — not a text color. `mutedForeground` is the text one. */
+  muted: string;
+  mutedForeground: string;
+  /** shadcn semantics: the hover/active surface, not a brand color. */
+  accent: string;
+  accentForeground: string;
   border: string;
-  muted?: string;
-  link?: string;
-  linkHover?: string;
-  emphasis?: string;
+  /** Form control borders, which sit a step stronger than `border`. */
+  input: string;
+  ring: string;
   success?: string;
   warning?: string;
   error?: string;
+  destructive?: string;
   info?: string;
 }
 

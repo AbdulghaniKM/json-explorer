@@ -1,7 +1,7 @@
 <template>
   <div v-if="visible">
     <div
-      class="group flex items-start gap-1.5 rounded-md py-[3px] pe-2 font-mono text-[13px] leading-6"
+      class="group flex items-start gap-1.5 rounded-md py-[3px] pe-2 font-mono text-(length:--code-size) leading-6"
       :class="rowClass"
       :style="{ paddingInlineStart: padStart }"
       @click="toggle"
@@ -91,7 +91,7 @@
       <button
         v-if="hiddenChildren > 0"
         type="button"
-        class="rounded-md py-[3px] pe-2 text-start font-mono text-[13px] leading-6 text-text-muted underline-offset-2 hover:text-text hover:underline"
+        class="rounded-md py-[3px] pe-2 text-start font-mono text-(length:--code-size) leading-6 text-text-muted underline-offset-2 hover:text-text hover:underline"
         :style="{ paddingInlineStart: childPadStart }"
         @click.stop="showMore"
       >

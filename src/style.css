@@ -1,26 +1,56 @@
 @import 'tailwindcss';
+/* Upright weights only — the italics are never used. Subsets carry unicode-range, so a
+   browser fetches just the ranges the page actually needs. Vite emits the woff2 under
+   /assets, which keeps the CSP's `font-src 'self'` satisfied. */
+@import '@fontsource-variable/jetbrains-mono/wght.css';
 @plugin '@iconify/tailwind4';
 
-/* Tailwind Theme Definitions */
-/* Fallback values for build-time; runtime colors come from app.config.ts via applyTheme() */
+/* These are not merely build-time fallbacks. Tailwind bakes each value into a literal hex for
+   every opacity-modified utility, emitted *before* the `@supports (color-mix())` block that
+   uses the live variable — so any engine without color-mix renders straight from this list.
+   Keep it in step with theme.dark in app.config.ts (dark is the canonical mode), or those
+   engines will render a stale palette.
+
+   Runtime values, per theme, come from app.config.ts via applyTheme(). */
 @theme {
-  --color-primary: #3b82f6;
-  --color-secondary: #8b5cf6;
-  --color-accent: #f59e0b;
-  --color-background: #ffffff;
-  --color-surface: #f9fafb;
-  --color-text: #111827;
-  --color-text-secondary: #6b7280;
-  --color-border: #e5e7eb;
-  --color-muted: #f3f4f6;
-  --color-link: #3b82f6;
-  --color-link-hover: #2563eb;
-  --color-emphasis: #1e40af;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
-  --color-text-muted: var(--color-text-secondary);
+  --color-background: #0a0d0a;
+  --color-foreground: #d5e3d5;
+  --color-card: #0f130f;
+  --color-card-foreground: #d5e3d5;
+  --color-popover: #141914;
+  --color-popover-foreground: #d5e3d5;
+  --color-primary: #00e05c;
+  --color-primary-foreground: #04120a;
+  --color-secondary: #1a201a;
+  --color-secondary-foreground: #d5e3d5;
+  --color-muted: #161b16;
+  --color-muted-foreground: #7e8f7e;
+  --color-accent: #1c231c;
+  --color-accent-foreground: #d5e3d5;
+  --color-border: #1c221c;
+  --color-input: #2a332a;
+  --color-ring: #00ff41;
+  --color-success: #00e05c;
+  --color-warning: #e8c547;
+  --color-error: #ff5f56;
+  --color-destructive: #ff5f56;
+  --color-info: #5ad7e8;
+
+  /* Pre-rename names, mirrored by LEGACY_ALIASES in utils/theme.ts. Both lists go in the
+     commit that removes the last legacy class. */
+  --color-surface: #0f130f;
+  --color-text: #d5e3d5;
+  --color-text-secondary: #7e8f7e;
+  --color-text-muted: #7e8f7e;
+
+  /* Square by default. The html[data-shape] knob in this file still overrides it, but note
+     `rounded` and `rounded-full` compile to literals and never read this scale. */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
 
   /* Font variables */
   --font-primary: var(--font-primary);
@@ -57,68 +87,65 @@
 /* Colors are available as CSS variables: --color-primary, --color-secondary, etc. */
 /* Use them in your components like: color: var(--color-primary); */
 
-/* Base theme-aware styles */
+/* Phosphor.
+
+   Dark is the base and light is the override, rather than the other way round — the pre-boot
+   script in index.html resolves the theme before first paint and always writes an explicit
+   data-theme, so there is exactly one place each value is declared. The previous arrangement
+   kept three copies of this list (`:root`, `[data-theme=dark]` and a byte-identical
+   prefers-color-scheme block) that could silently drift apart. */
 :root {
   color-scheme: light dark;
 
-  --token-key: #7c3aed;
-  --token-string: #047857;
-  --token-number: #b45309;
-  --token-boolean: #1d4ed8;
-  --token-null: #94a3b8;
-  --token-punct: #94a3b8;
-  --diff-added: #05966922;
-  --diff-removed: #dc262622;
-  --diff-changed: #d9770622;
+  /* The ANSI 16 — cyan/green/yellow/magenta — which is both the most period-correct choice
+     for a terminal and the only way this stays readable. Green owns strings, the bulk of most
+     documents, so the overall cast is still phosphor without turning the tree into one wash. */
+  --token-key: #5ad7e8;
+  --token-string: #00e05c;
+  --token-number: #e8c547;
+  --token-boolean: #e85ac7;
+  --token-null: #6e7f6e;
+  --token-punct: #4a564a;
+  --diff-added: #00e05c1f;
+  --diff-removed: #ff5f561f;
+  --diff-changed: #e8c5471f;
 
-  --depth-0: #6366f1;
-  --depth-1: #0ea5e9;
-  --depth-2: #10b981;
-  --depth-3: #f59e0b;
-  --depth-4: #ec4899;
-  --depth-5: #8b5cf6;
+  /* Braces and indent guides. Deliberately desaturated: nesting is magnitude, not category,
+     and it has to recede behind the token colors rather than compete with them. */
+  --depth-0: #7e8f7e;
+  --depth-1: #74857a;
+  --depth-2: #6a7b76;
+  --depth-3: #647471;
+  --depth-4: #5c6a68;
+  --depth-5: #55615f;
 
-  --indent-width: 0.875rem;
+  /* Mirrors src/config/density.ts, which injects the real values at boot. These cover the
+     frame before that runs — keep them in step. */
+  --header-h: 56px;
+  --row-h: 26px;
+  --code-line: 20px;
+  --code-size: 13px;
+  --indent-width: 14px;
+  --control-h: 32px;
 }
 
-[data-theme='dark'] {
-  --token-key: #c4b5fd;
-  --token-string: #6ee7b7;
-  --token-number: #fcd34d;
-  --token-boolean: #93c5fd;
-  --token-null: #64748b;
-  --token-punct: #64748b;
-  --diff-added: #34d39926;
-  --diff-removed: #f8717126;
-  --diff-changed: #fbbf2426;
+[data-theme='light'] {
+  --token-key: #0e6c7a;
+  --token-string: #0f7a3d;
+  --token-number: #8a6100;
+  --token-boolean: #a02a8a;
+  --token-null: #7a857a;
+  --token-punct: #a3afa3;
+  --diff-added: #0f7a3d1f;
+  --diff-removed: #b91c1c1f;
+  --diff-changed: #8a61001f;
 
-  --depth-0: #a5b4fc;
-  --depth-1: #7dd3fc;
-  --depth-2: #6ee7b7;
-  --depth-3: #fcd34d;
-  --depth-4: #f9a8d4;
-  --depth-5: #c4b5fd;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --token-key: #c4b5fd;
-    --token-string: #6ee7b7;
-    --token-number: #fcd34d;
-    --token-boolean: #93c5fd;
-    --token-null: #64748b;
-    --token-punct: #64748b;
-    --diff-added: #34d39926;
-    --diff-removed: #f8717126;
-    --diff-changed: #fbbf2426;
-
-    --depth-0: #a5b4fc;
-    --depth-1: #7dd3fc;
-    --depth-2: #6ee7b7;
-    --depth-3: #fcd34d;
-    --depth-4: #f9a8d4;
-    --depth-5: #c4b5fd;
-  }
+  --depth-0: #5a655a;
+  --depth-1: #626c63;
+  --depth-2: #6a736c;
+  --depth-3: #707a74;
+  --depth-4: #78817c;
+  --depth-5: #7f8884;
 }
 
 .depth-0 {
@@ -251,11 +278,12 @@ body {
   font-family: var(--font-primary);
 }
 
-/* Custom scrollbar - theme-aware, slim & smooth.
-   Scoped to html/body (not `*`) to avoid overriding component scrollers. */
+/* Square, hairline-bordered, and quiet until you reach for it. The three states step through
+   one hue — `accent` and `secondary` are surfaces now, not brand colors, so the old
+   primary/accent/secondary progression would have faded to invisible on hover. */
 html {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-primary) transparent;
+  scrollbar-color: var(--color-input) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -268,19 +296,18 @@ html {
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--color-primary);
-  border-radius: 9999px;
+  background: var(--color-input);
   border: 0.125rem solid transparent;
   background-clip: padding-box;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent);
+  background: var(--color-muted-foreground);
   background-clip: padding-box;
 }
 
 *::-webkit-scrollbar-thumb:active {
-  background: var(--color-secondary);
+  background: var(--color-primary);
   background-clip: padding-box;
 }
 

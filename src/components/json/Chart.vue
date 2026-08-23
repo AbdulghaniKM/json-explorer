@@ -40,9 +40,10 @@
     { height: 13, horizontal: false, formatter: (value: number) => value.toLocaleString('en-US') },
   );
 
-  // Validated against both surfaces with the dataviz palette checker: lightness band,
-  // chroma floor and 3:1 contrast all pass. Changing these needs a re-run.
-  const MARK_COLOR = { light: '#4f46e5', dark: '#6366f1' } as const;
+  // Deliberately calmer than --primary. A large fill of #00e05c fails the dataviz checker's
+  // lightness band against the dark canvas and glares; these two pass band, chroma floor and
+  // 3:1 contrast on both surfaces. Re-run the checker before changing them.
+  const MARK_COLOR = { light: '#0f7a3d', dark: '#16a34a' } as const;
 
   const { theme, colors } = useTheme();
 
@@ -68,7 +69,7 @@
     plotOptions: {
       bar: {
         horizontal: props.horizontal,
-        borderRadius: 4,
+        borderRadius: 0,
         borderRadiusApplication: 'end',
         barHeight: '62%',
         columnWidth: '58%',
@@ -80,11 +81,11 @@
       textAnchor: 'start',
       offsetX: 8,
       formatter: (value) => props.formatter(Number(value)),
-      style: { fontSize: '0.6875rem', fontWeight: 500, colors: [colors.value.textSecondary] },
+      style: { fontSize: '0.6875rem', fontWeight: 500, colors: [colors.value.mutedForeground] },
     },
     grid: {
       borderColor: colors.value.border,
-      strokeDashArray: 4,
+      strokeDashArray: 0,
       padding: { top: 0, right: props.horizontal ? 32 : 4, bottom: 0, left: 4 },
       xaxis: { lines: { show: props.horizontal } },
       yaxis: { lines: { show: !props.horizontal } },
@@ -96,13 +97,13 @@
       axisTicks: { show: false },
       labels: {
         show: !props.horizontal,
-        style: { colors: colors.value.textSecondary, fontSize: '0.6875rem' },
+        style: { colors: colors.value.mutedForeground, fontSize: '0.6875rem' },
       },
       tooltip: { enabled: false },
     },
     yaxis: {
       labels: {
-        style: { colors: colors.value.textSecondary, fontSize: '0.6875rem' },
+        style: { colors: colors.value.mutedForeground, fontSize: '0.6875rem' },
         formatter: (value) => (props.horizontal ? String(value) : props.formatter(Number(value))),
       },
     },

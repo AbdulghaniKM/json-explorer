@@ -1,44 +1,7 @@
 import type { ThemeConfig, ColorPalette } from '../config/types';
+import { DENSITY_VARIABLES } from '../config/density';
 
 export type { ColorPalette };
-
-export const generateTailwindTheme = (theme: ThemeConfig): string => {
-  const colorMap: Record<string, string> = {
-    primary: 'primary',
-    secondary: 'secondary',
-    accent: 'accent',
-    background: 'background',
-    surface: 'surface',
-    text: 'text',
-    textSecondary: 'text-secondary',
-    border: 'border',
-    muted: 'muted',
-    link: 'link',
-    linkHover: 'link-hover',
-    emphasis: 'emphasis',
-    success: 'success',
-    warning: 'warning',
-    error: 'error',
-    info: 'info',
-  };
-
-  const themeVars = Object.entries(colorMap)
-    .map(([configKey, tailwindName]) => {
-      const hasColor =
-        configKey === 'textSecondary'
-          ? theme.light.textSecondary !== undefined
-          : theme.light[configKey as keyof ColorPalette] !== undefined;
-
-      if (hasColor) {
-        return `  --color-${tailwindName}: var(--color-${tailwindName});`;
-      }
-      return null;
-    })
-    .filter((line): line is string => line !== null)
-    .join('\n');
-
-  return `@theme {\n${themeVars}\n}`;
-};
 
 export const generateCSSVariables = (theme: ThemeConfig): string => {
   const lightVars = generateColorVariables(theme.light);
@@ -63,25 +26,58 @@ export const generateCSSVariables = (theme: ThemeConfig): string => {
 
 const camelToKebab = (str: string): string => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 
+/**
+ * Pre-rename utility names, emitted alongside the current ones so both vocabularies resolve
+ * while the call sites migrate. Delete this map — and the matching entries in style.css's
+ * `@theme` — in the same commit that removes the last legacy class.
+ *
+ * `text-muted` earns its place here: it used to exist *only* as `var(--color-text-secondary)`
+ * inside `@theme`, so the 61 `text-text-muted` call sites would have silently dropped to a
+ * build-time grey the moment `--color-text-secondary` stopped being emitted.
+ */
+const LEGACY_ALIASES: Record<string, keyof ColorPalette> = {
+  surface: 'card',
+  text: 'foreground',
+  'text-secondary': 'mutedForeground',
+  'text-muted': 'mutedForeground',
+};
+
 const generateColorVariables = (palette: ColorPalette): string => {
-  return Object.entries(palette)
+  const declarations = Object.entries(palette)
     .filter(([, value]) => value)
-    .map(([key, value]) => `  --color-${camelToKebab(key)}: ${value};`)
-    .join('\n');
+    .map(([key, value]) => `  --color-${camelToKebab(key)}: ${value};`);
+
+  for (const [legacy, current] of Object.entries(LEGACY_ALIASES)) {
+    const value = palette[current];
+    if (value) declarations.push(`  --color-${legacy}: ${value};`);
+  }
+
+  return declarations.join('\n');
+};
+
+const writeStyleElement = (id: string, css: string): void => {
+  let styleElement = document.getElementById(id) as HTMLStyleElement | null;
+
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = id;
+    document.head.appendChild(styleElement);
+  }
+
+  styleElement.textContent = css;
 };
 
 export const applyTheme = (theme: ThemeConfig): void => {
   if (typeof document === 'undefined') return;
-  const styleId = 'app-theme-variables';
-  let styleElement = document.getElementById(styleId) as HTMLStyleElement | null;
+  writeStyleElement('app-theme-variables', generateCSSVariables(theme));
+};
 
-  if (!styleElement) {
-    styleElement = document.createElement('style');
-    styleElement.id = styleId;
-    document.head.appendChild(styleElement);
-  }
-
-  styleElement.textContent = generateCSSVariables(theme);
+export const applyDensity = (): void => {
+  if (typeof document === 'undefined') return;
+  const declarations = Object.entries(DENSITY_VARIABLES)
+    .map(([name, value]) => `  ${name}: ${value};`)
+    .join('\n');
+  writeStyleElement('app-density-variables', `:root {\n${declarations}\n}`);
 };
 
 let transitionTimer: ReturnType<typeof setTimeout> | null = null;
@@ -104,13 +100,10 @@ export const applyThemeToDOM = (theme: 'light' | 'dark' | 'system'): void => {
     transitionTimer = null;
   }, 300);
 
-  if (theme === 'system') {
-    root.removeAttribute('data-theme');
-  } else {
-    root.setAttribute('data-theme', theme);
-  }
+  // Always resolve to a concrete value. Dark is now the bare `:root` palette, so clearing the
+  // attribute would mean "dark" rather than "follow the OS".
+  root.setAttribute('data-theme', theme === 'system' ? getSystemTheme() : theme);
 };
 
-export const getColorValue = (colorKey: keyof ColorPalette, theme: 'light' | 'dark'): string => {
-  return `var(--color-${colorKey})`;
-};
+export const getColorValue = (colorKey: keyof ColorPalette): string =>
+  `var(--color-${camelToKebab(colorKey)})`;

@@ -2,7 +2,7 @@
   <div class="flex min-h-screen flex-col bg-background">
     <a
       href="#main"
-      class="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-white"
+      class="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
     >
       Skip to content
     </a>
@@ -10,7 +10,9 @@
     <header class="sticky top-0 z-30 border-b border-border/60 bg-surface/80 backdrop-blur-xl">
       <div class="mx-auto flex h-14 w-full max-w-[1400px] items-center gap-3 px-4">
         <RouterLink to="/" class="flex shrink-0 items-center gap-2">
-          <span class="flex size-8 items-center justify-center rounded-lg bg-primary text-white">
+          <span
+            class="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground"
+          >
             <UiAppIcon name="icon-[solar--code-square-linear]" :size="1.125" />
           </span>
           <span class="text-sm font-semibold text-text sm:text-base">{{ appName }}</span>
@@ -34,6 +36,15 @@
         </nav>
 
         <div class="ms-auto flex items-center gap-1">
+          <button
+            type="button"
+            class="me-1 hidden items-center gap-2 border border-border bg-card px-2.5 py-1.5 font-mono text-xs text-muted-foreground transition-none hover:border-primary/50 hover:text-foreground sm:flex"
+            @click="palette.show()"
+          >
+            <UiAppIcon name="icon-[solar--magnifer-linear]" :size="0.85" />
+            <span>run a command</span>
+            <kbd class="border border-border px-1 py-0.5 text-[10px]">^K</kbd>
+          </button>
           <div ref="shortcutsRef" class="relative">
             <UiAppButton
               icon="icon-[solar--keyboard-linear]"
@@ -87,6 +98,8 @@
       <slot />
     </main>
 
+    <UiCommandPalette />
+
     <footer class="border-t border-border/60 px-4 py-4">
       <div
         class="mx-auto flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-2 text-xs text-text-muted"
@@ -102,9 +115,159 @@
 </template>
 
 <script setup lang="ts">
+  import { useCommandPalette, type Command } from '@/composables/useCommandPalette';
+  import { useJsonWorkspace } from '@/composables/useJsonWorkspace';
+  import { usePreferences } from '@/composables/usePreferences';
+  import { useTheme } from '@/composables/useTheme';
+
   const { appName } = useAppConfig();
   const route = useRoute();
   const router = useRouter();
+
+  // The layout already owns the workspace shortcuts, so the palette reuses those actions
+  // rather than re-implementing them. `shortcuts: false` keeps it from binding a second copy
+  // of Ctrl+O/S/B/M on top of whatever the current page registered.
+  const workspace = useJsonWorkspace({ shortcuts: false });
+  const { store } = workspace;
+  const { toggleTheme, isDark } = useTheme();
+  const { sampleData } = usePreferences();
+  const palette = useCommandPalette();
+
+  const navigation: Command[] = TOOLS.map((tool, position) => ({
+    id: `go:${tool.path}`,
+    label: tool.label,
+    group: 'Go to',
+    icon: tool.icon,
+    keywords: tool.description,
+    shortcut: `Alt ${position + 1}`,
+    run: () => router.push(tool.path),
+  }));
+
+  const transform = (
+    id: string,
+    label: string,
+    icon: string,
+    op: Parameters<typeof workspace.run>[0],
+    shortcut?: string,
+  ): Command => ({
+    id,
+    label,
+    group: 'Transform',
+    icon,
+    shortcut,
+    available: () => !store.isEmpty,
+    run: () => workspace.run(op),
+  });
+
+  palette.register([
+    ...navigation,
+    {
+      id: 'doc:open',
+      label: 'Open a file',
+      group: 'Document',
+      icon: 'icon-[solar--upload-minimalistic-linear]',
+      shortcut: 'Ctrl O',
+      run: workspace.open,
+    },
+    {
+      id: 'doc:save',
+      label: 'Download JSON',
+      group: 'Document',
+      icon: 'icon-[solar--download-minimalistic-linear]',
+      shortcut: 'Ctrl S',
+      available: () => !store.isEmpty,
+      run: workspace.save,
+    },
+    {
+      id: 'doc:copy',
+      label: 'Copy document',
+      group: 'Document',
+      icon: 'icon-[solar--copy-linear]',
+      available: () => !store.isEmpty,
+      run: workspace.copyAll,
+    },
+    {
+      id: 'doc:sample',
+      label: 'Load the sample document',
+      group: 'Document',
+      icon: 'icon-[solar--document-add-linear]',
+      available: () => sampleData.value,
+      run: store.loadSample,
+    },
+    {
+      id: 'doc:clear',
+      label: 'Clear the workspace',
+      group: 'Document',
+      icon: 'icon-[solar--trash-bin-minimalistic-linear]',
+      available: () => !store.isEmpty,
+      run: store.clear,
+    },
+    {
+      id: 'doc:undo',
+      label: 'Undo the last change',
+      group: 'Document',
+      icon: 'icon-[solar--undo-left-linear]',
+      available: () => store.canUndo,
+      run: store.undo,
+    },
+    transform(
+      'tx:beautify',
+      'Beautify',
+      'icon-[solar--magic-stick-3-linear]',
+      'beautify',
+      'Ctrl B',
+    ),
+    transform('tx:minify', 'Minify', 'icon-[solar--minimize-square-linear]', 'minify', 'Ctrl M'),
+    transform(
+      'tx:sortAsc',
+      'Sort keys A→Z',
+      'icon-[solar--sort-from-top-to-bottom-linear]',
+      'sortAsc',
+    ),
+    transform(
+      'tx:sortDesc',
+      'Sort keys Z→A',
+      'icon-[solar--sort-from-bottom-to-top-linear]',
+      'sortDesc',
+    ),
+    transform(
+      'tx:removeEmpty',
+      'Remove empty values',
+      'icon-[solar--eraser-linear]',
+      'removeEmpty',
+    ),
+    transform('tx:repair', 'Repair malformed JSON', 'icon-[solar--health-linear]', 'repair'),
+    transform(
+      'tx:escape',
+      'Escape to a JSON string',
+      'icon-[solar--quote-up-square-linear]',
+      'escape',
+    ),
+    transform(
+      'tx:unescape',
+      'Unescape a JSON string',
+      'icon-[solar--quote-down-square-linear]',
+      'unescape',
+    ),
+    {
+      id: 'ui:theme',
+      label: 'Toggle light / dark',
+      group: 'Appearance',
+      icon: 'icon-[solar--moon-linear]',
+      keywords: 'theme colour scheme',
+      run: toggleTheme,
+    },
+    {
+      id: 'ui:sample',
+      label: 'Toggle the sample document',
+      group: 'Appearance',
+      icon: 'icon-[solar--document-add-linear]',
+      keywords: 'settings preference demo',
+      run: () => {
+        sampleData.value = !sampleData.value;
+      },
+    },
+  ]);
 
   const shortcutsRef = ref<HTMLElement | null>(null);
   const showShortcuts = ref(false);
@@ -114,6 +277,7 @@
   });
 
   const SHORTCUTS = [
+    { keys: 'Ctrl K', label: 'Command palette' },
     { keys: 'Alt 1–5', label: 'Switch tool' },
     { keys: 'Ctrl O', label: 'Open a file' },
     { keys: 'Ctrl S', label: 'Download JSON' },
@@ -126,6 +290,10 @@
     path === '/' ? route.path === '/' : route.path.startsWith(path);
 
   useKeyboard({
+    'ctrl+k': () => {
+      palette.toggle();
+      return true;
+    },
     'alt+1': () => {
       router.push(TOOLS[0].path);
       return true;

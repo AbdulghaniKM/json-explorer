@@ -12,43 +12,59 @@ export const appConfig: AppConfig = {
     language: 'en',
   },
 
+  // Terminal Brutalist. Dark is the canonical mode — phosphor green only reads as phosphor
+  // green against black, so light mode is an honest paper-and-ink translation rather than an
+  // imitation. Every contrast ratio in the comments is computed, not estimated; re-run
+  // scripts/contrast.js if you touch a value.
   theme: {
-    defaultTheme: 'system',
+    defaultTheme: 'dark',
     light: {
-      primary: '#4f46e5',
-      secondary: '#0ea5e9',
-      accent: '#d97706',
-      background: '#ffffff',
-      surface: '#f8fafc',
-      text: '#0f172a',
-      textSecondary: '#64748b',
-      border: '#e2e8f0',
-      muted: '#f1f5f9',
-      link: '#4f46e5',
-      linkHover: '#4338ca',
-      emphasis: '#3730a3',
-      success: '#059669',
-      warning: '#d97706',
-      error: '#dc2626',
-      info: '#0284c7',
+      background: '#f6f7f3',
+      foreground: '#0b0e0b', // 18.0:1
+      card: '#ffffff',
+      cardForeground: '#0b0e0b',
+      popover: '#ffffff',
+      popoverForeground: '#0b0e0b',
+      primary: '#0f7a3d', // 5.0:1 on background
+      primaryForeground: '#ffffff', // 5.3:1 on primary
+      secondary: '#eceee7',
+      secondaryForeground: '#0b0e0b',
+      muted: '#eceee7',
+      mutedForeground: '#5a655a', // 5.7:1
+      accent: '#e3e7dd',
+      accentForeground: '#0b0e0b',
+      border: '#dce2d8',
+      input: '#c8d1c4',
+      ring: '#0f7a3d',
+      success: '#0f7a3d',
+      warning: '#8a6100',
+      error: '#b91c1c',
+      destructive: '#b91c1c',
+      info: '#0e6c7a',
     },
     dark: {
-      primary: '#818cf8',
-      secondary: '#38bdf8',
-      accent: '#fbbf24',
-      background: '#0b1120',
-      surface: '#111a2e',
-      text: '#e2e8f0',
-      textSecondary: '#94a3b8',
-      border: '#26334d',
-      muted: '#1b2540',
-      link: '#818cf8',
-      linkHover: '#a5b4fc',
-      emphasis: '#a5b4fc',
-      success: '#34d399',
-      warning: '#fbbf24',
-      error: '#f87171',
-      info: '#38bdf8',
+      background: '#0a0d0a',
+      foreground: '#d5e3d5', // 14.7:1
+      card: '#0f130f',
+      cardForeground: '#d5e3d5',
+      popover: '#141914',
+      popoverForeground: '#d5e3d5',
+      primary: '#00e05c', // 11.0:1 on background
+      primaryForeground: '#04120a', // 11.0:1 on primary
+      secondary: '#1a201a',
+      secondaryForeground: '#d5e3d5',
+      muted: '#161b16',
+      mutedForeground: '#7e8f7e', // 5.7:1
+      accent: '#1c231c',
+      accentForeground: '#d5e3d5',
+      border: '#1c221c',
+      input: '#2a332a',
+      ring: '#00ff41', // canonical Matrix green, only ever a focus outline
+      success: '#00e05c',
+      warning: '#e8c547',
+      error: '#ff5f56',
+      destructive: '#ff5f56',
+      info: '#5ad7e8',
     },
   },
 
@@ -80,8 +96,11 @@ export const appConfig: AppConfig = {
       fallbacks: ['system-ui', 'sans-serif'],
       cssVariable: 'font-secondary',
     },
+    // Declared by @fontsource-variable/jetbrains-mono, imported in style.css. The family name
+    // has to match that package's @font-face exactly — registerFontFamily writes it straight
+    // into --font-mono as an inline style on <html>, where nothing else can correct it.
     mono: {
-      family: 'JetBrains Mono',
+      family: 'JetBrains Mono Variable',
       fallbacks: [
         'ui-monospace',
         'SFMono-Regular',

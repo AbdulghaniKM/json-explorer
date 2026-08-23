@@ -1,7 +1,7 @@
 import { ThemePersistence } from '@/lib/ThemePersistence';
 import { loadFont, registerFontFamily } from '../utils/fonts';
 import { useSeo } from '../utils/seo';
-import { applyTheme } from '../utils/theme';
+import { applyDensity, applyTheme } from '../utils/theme';
 import { appConfig } from './app.config';
 import type { AppConfig } from './types';
 
@@ -12,6 +12,7 @@ export const initializeConfig = (): void => {
   if (typeof document === 'undefined') return;
 
   applyTheme(appConfig.theme);
+  applyDensity();
 
   ThemePersistence.synchronizeDocumentWithApplicationConfig();
 

@@ -7,8 +7,11 @@
 export {}
 declare global {
   const CLIPBOARD_LIMIT: typeof import('./composables/useJsonWorkspace').CLIPBOARD_LIMIT
+  const COMMAND_GROUPS: typeof import('./composables/useCommandPalette').COMMAND_GROUPS
   const CONVERT_GROUPS: typeof import('./config/convert').CONVERT_GROUPS
   const CONVERT_TARGETS: typeof import('./config/convert').CONVERT_TARGETS
+  const DENSITY: typeof import('./config/density').DENSITY
+  const DENSITY_VARIABLES: typeof import('./config/density').DENSITY_VARIABLES
   const EDIT_LIMIT: typeof import('./stores/json.store').EDIT_LIMIT
   const EXPAND_ALL_LIMIT: typeof import('./composables/useJsonTree').EXPAND_ALL_LIMIT
   const EffectScope: typeof import('vue').EffectScope
@@ -174,6 +177,7 @@ declare global {
   const useClipboardItems: typeof import('@vueuse/core').useClipboardItems
   const useCloned: typeof import('@vueuse/core').useCloned
   const useColorMode: typeof import('@vueuse/core').useColorMode
+  const useCommandPalette: typeof import('./composables/useCommandPalette').useCommandPalette
   const useConfirmDialog: typeof import('@vueuse/core').useConfirmDialog
   const useCountdown: typeof import('@vueuse/core').useCountdown
   const useCounter: typeof import('@vueuse/core').useCounter
@@ -349,6 +353,9 @@ declare global {
   export type { Component, Slot, Slots, ComponentPublicInstance, ComputedRef, DirectiveBinding, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, ShallowRef, MaybeRef, MaybeRefOrGetter, VNode, WritableComputedRef } from 'vue'
   import('vue')
   // @ts-ignore
+  export type { CommandGroup, Command } from './composables/useCommandPalette'
+  import('./composables/useCommandPalette')
+  // @ts-ignore
   export type { LoadedFile } from './composables/useJsonFile'
   import('./composables/useJsonFile')
   // @ts-ignore
@@ -370,6 +377,9 @@ declare global {
   export type { ConvertGroup, ConvertTargetOption } from './config/convert'
   import('./config/convert')
   // @ts-ignore
+  export type { DensityScale } from './config/density'
+  import('./config/density')
+  // @ts-ignore
   export type { ToolLink } from './config/tools'
   import('./config/tools')
   // @ts-ignore
@@ -383,8 +393,11 @@ declare module 'vue' {
   interface GlobalComponents {}
   interface ComponentCustomProperties {
     readonly CLIPBOARD_LIMIT: UnwrapRef<typeof import('./composables/useJsonWorkspace')['CLIPBOARD_LIMIT']>
+    readonly COMMAND_GROUPS: UnwrapRef<typeof import('./composables/useCommandPalette')['COMMAND_GROUPS']>
     readonly CONVERT_GROUPS: UnwrapRef<typeof import('./config/convert')['CONVERT_GROUPS']>
     readonly CONVERT_TARGETS: UnwrapRef<typeof import('./config/convert')['CONVERT_TARGETS']>
+    readonly DENSITY: UnwrapRef<typeof import('./config/density')['DENSITY']>
+    readonly DENSITY_VARIABLES: UnwrapRef<typeof import('./config/density')['DENSITY_VARIABLES']>
     readonly EDIT_LIMIT: UnwrapRef<typeof import('./stores/json.store')['EDIT_LIMIT']>
     readonly EXPAND_ALL_LIMIT: UnwrapRef<typeof import('./composables/useJsonTree')['EXPAND_ALL_LIMIT']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
@@ -549,6 +562,7 @@ declare module 'vue' {
     readonly useClipboardItems: UnwrapRef<typeof import('@vueuse/core')['useClipboardItems']>
     readonly useCloned: UnwrapRef<typeof import('@vueuse/core')['useCloned']>
     readonly useColorMode: UnwrapRef<typeof import('@vueuse/core')['useColorMode']>
+    readonly useCommandPalette: UnwrapRef<typeof import('./composables/useCommandPalette')['useCommandPalette']>
     readonly useConfirmDialog: UnwrapRef<typeof import('@vueuse/core')['useConfirmDialog']>
     readonly useCountdown: UnwrapRef<typeof import('@vueuse/core')['useCountdown']>
     readonly useCounter: UnwrapRef<typeof import('@vueuse/core')['useCounter']>

@@ -50,18 +50,22 @@
           </button>
           <span v-else class="size-4 shrink-0" />
 
-          <span v-if="row.key !== null" class="shrink-0 font-mono text-[13px]">
+          <span v-if="row.key !== null" class="shrink-0 font-mono text-(length:--code-size)">
             <span :class="row.arrayItem ? 'text-text-muted' : 'tok-key'">{{ row.key }}</span>
             <span class="tok-punct">:</span>
           </span>
 
-          <span v-if="row.container" class="shrink-0 font-mono text-[13px]" :class="row.depthClass">
+          <span
+            v-if="row.container"
+            class="shrink-0 font-mono text-(length:--code-size)"
+            :class="row.depthClass"
+          >
             <span>{{ row.open }}</span>
             <span v-if="!row.expanded" class="text-text-muted">{{ row.summary }}</span>
             <span v-if="!row.expanded">{{ row.close }}</span>
           </span>
 
-          <span v-else class="truncate font-mono text-[13px]" :class="row.tokenClass">
+          <span v-else class="truncate font-mono text-(length:--code-size)" :class="row.tokenClass">
             {{ row.value }}
           </span>
 
@@ -113,12 +117,13 @@
   import { JSON_TREE_KEY, type JsonTreeApi } from '@/composables/useJsonTree';
   import { useClipboard } from '@/composables/useClipboard';
   import { useToast } from '@/composables/useToast';
+  import { DENSITY } from '@/config/density';
 
   const props = defineProps<{ text: string; index: JsonIndex; api: JsonTreeApi }>();
 
   provide(JSON_TREE_KEY, props.api);
 
-  const ROW_HEIGHT = 26;
+  const ROW_HEIGHT = DENSITY.treeRowHeight;
   const OVERSCAN = 12;
   const VALUE_CHARS = 220;
   const COPY_LIMIT = 4 * 1024 * 1024;

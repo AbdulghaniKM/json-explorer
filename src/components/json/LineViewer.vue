@@ -9,7 +9,7 @@
           :style="{ height: `${ROW_HEIGHT}px` }"
         >
           <span
-            class="sticky start-0 shrink-0 border-e border-border/60 bg-muted/40 px-2 text-end font-mono text-[13px] leading-[21px] text-text-muted select-none"
+            class="sticky start-0 shrink-0 border-e border-border/60 bg-muted/40 px-2 text-end font-mono text-(length:--code-size) leading-(--code-line) text-text-muted select-none"
             :class="line.number === errorLine ? 'bg-error/15 font-semibold text-error' : ''"
             :style="{ width: gutterWidth }"
           >
@@ -28,7 +28,7 @@
               }"
             />
             <pre
-              class="ps-3 font-mono text-[13px] leading-[21px] whitespace-pre"
+              class="ps-3 font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre"
             ><code v-html="line.html"></code></pre>
           </div>
         </div>
@@ -40,10 +40,11 @@
 <script setup lang="ts">
   import { highlightJson } from '@/lib/json';
   import { buildLineStarts, buildRowPrefix, lineOfRow, sliceForRow } from '@/lib/json/lines';
+  import { DENSITY } from '@/config/density';
 
   const props = withDefaults(defineProps<{ text: string; errorLine?: number }>(), { errorLine: 0 });
 
-  const ROW_HEIGHT = 21;
+  const ROW_HEIGHT = DENSITY.codeLineHeight;
   const OVERSCAN = 10;
   const MAX_LINE_CHARS = 2000;
   const MAX_GUIDES = 40;

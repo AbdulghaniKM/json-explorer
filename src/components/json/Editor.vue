@@ -36,7 +36,7 @@
       <div class="flex h-full min-h-0">
         <div
           ref="gutterRef"
-          class="hidden shrink-0 overflow-hidden border-e border-border/60 bg-muted/40 py-3 text-end font-mono text-[13px] leading-[1.6] text-text-muted/70 select-none sm:block"
+          class="hidden shrink-0 overflow-hidden border-e border-border/60 bg-muted/40 py-3 text-end font-mono text-(length:--code-size) leading-(--code-line) text-text-muted/70 select-none sm:block"
           :style="{ width: gutterWidth }"
         >
           <div
@@ -54,7 +54,7 @@
             v-if="useHighlight"
             ref="highlightRef"
             aria-hidden="true"
-            class="pointer-events-none absolute inset-0 overflow-hidden p-3 font-mono text-[13px] leading-[1.6] whitespace-pre"
+            class="pointer-events-none absolute inset-0 overflow-hidden p-3 font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre"
           ><code v-html="highlighted"></code></pre>
 
           <textarea
@@ -66,7 +66,7 @@
             autocomplete="off"
             autocapitalize="off"
             wrap="off"
-            class="absolute inset-0 h-full w-full resize-none bg-transparent p-3 font-mono text-[13px] leading-[1.6] whitespace-pre caret-primary outline-none"
+            class="absolute inset-0 h-full w-full resize-none bg-transparent p-3 font-mono text-(length:--code-size) leading-(--code-line) whitespace-pre caret-primary outline-none"
             :class="useHighlight ? 'text-transparent' : 'text-text'"
             @input="onInput"
             @scroll="syncScroll"
@@ -129,6 +129,7 @@
   import { useJsonFile } from '@/composables/useJsonFile';
   import JsonLineViewer from './LineViewer.vue';
   import { showSampleData } from '@/composables/usePreferences';
+  import { DENSITY } from '@/config/density';
 
   const props = withDefaults(
     defineProps<{
@@ -255,7 +256,7 @@
 
     target.focus();
     target.setSelectionRange(offset, offset);
-    target.scrollTop = Math.max(0, (position.line - 4) * 20.8);
+    target.scrollTop = Math.max(0, (position.line - 4) * DENSITY.codeLineHeight);
     syncScroll();
   };
 
