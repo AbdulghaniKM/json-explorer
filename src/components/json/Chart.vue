@@ -71,6 +71,39 @@
   // ramp. ApexCharts keys `colors` by series unless the bars are distributed.
   const distributed = computed(() => fills.value.length > 1 && props.series.length === 1);
 
+  /** Series names reach the tooltip as markup, and this component does not choose them. */
+  const escapeHtml = (value: string): string =>
+    value.replace(
+      /[&<>"']/g,
+      (char) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char,
+    );
+
+  interface TooltipContext {
+    seriesIndex: number;
+    dataPointIndex: number;
+    w: { globals: { series: number[][]; seriesNames: string[]; colors: string[] } };
+  }
+
+  /**
+   * The hovered segment, with its share of the row — the number a part-to-whole strip is read
+   * for, and the one thing the bar's length alone cannot be measured off by eye.
+   */
+  const segmentTooltip = ({ seriesIndex, dataPointIndex, w }: TooltipContext): string => {
+    const value = w.globals.series[seriesIndex]?.[dataPointIndex] ?? 0;
+    const total = w.globals.series.reduce((sum, row) => sum + (row[dataPointIndex] ?? 0), 0);
+    const share = total > 0 ? Math.round((value / total) * 100) : 0;
+    const name = escapeHtml(w.globals.seriesNames[seriesIndex] ?? '');
+    const swatch = escapeHtml(w.globals.colors[seriesIndex] ?? 'currentColor');
+
+    return `<div class="flex items-center gap-2 px-2 py-1 font-mono text-[11px]">
+      <span class="size-2 shrink-0" style="background:${swatch}"></span>
+      <span class="capitalize">${name}</span>
+      <span class="tabular-nums">${escapeHtml(props.formatter(value))}</span>
+      <span class="text-muted-foreground tabular-nums">${share}%</span>
+    </div>`;
+  };
+
   const options = computed<ApexOptions>(() => ({
     chart: {
       type: props.type,
@@ -144,12 +177,22 @@
       },
     },
     states: { hover: { filter: { type: 'lighten' } } },
-    tooltip: {
-      theme: theme.value,
-      shared: props.stacked,
-      intersect: false,
-      y: { formatter: (value) => props.formatter(Number(value)) },
-    },
+    // A stack answers "what is this segment?", so the tooltip is the one under the cursor
+    // rather than the whole row: shared would list all six types however carefully you aimed,
+    // and the legend beneath the chart already carries that list.
+    tooltip: props.stacked
+      ? {
+          theme: theme.value,
+          shared: false,
+          intersect: true,
+          custom: segmentTooltip,
+        }
+      : {
+          theme: theme.value,
+          shared: false,
+          intersect: false,
+          y: { formatter: (value) => props.formatter(Number(value)) },
+        },
     legend: { show: false },
   }));
 </script>

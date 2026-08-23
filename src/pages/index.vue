@@ -12,8 +12,7 @@
       <div class="relative grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:p-8">
         <div class="flex flex-col justify-center">
           <p class="flex items-center gap-2 text-[11px] tracking-[0.18em] text-primary uppercase">
-            <span class="inline-block h-px w-6 bg-primary" aria-hidden="true" />
-            browser-only json toolkit
+            browser-only
           </p>
 
           <h1
@@ -155,8 +154,8 @@
   "paid": true,
   "total": 219.59,
   "customer": {
-    "name": "Amina Yusuf",
-    "vip": false
+    "name": "Abdulghani Khalid",
+    "vip": true
   },
   "items": [
     { "sku": "KB-8801", "qty": 1 },
