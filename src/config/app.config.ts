@@ -19,22 +19,22 @@ export const appConfig: AppConfig = {
   theme: {
     defaultTheme: 'dark',
     light: {
-      background: '#f6f7f3',
-      foreground: '#0b0e0b', // 18.0:1
+      background: '#f7f7f8',
+      foreground: '#0c0c0e', // 17.8:1
       card: '#ffffff',
-      cardForeground: '#0b0e0b',
+      cardForeground: '#0c0c0e',
       popover: '#ffffff',
-      popoverForeground: '#0b0e0b',
+      popoverForeground: '#0c0c0e',
       primary: '#0f7a3d', // 5.0:1 on background
       primaryForeground: '#ffffff', // 5.3:1 on primary
-      secondary: '#eceee7',
-      secondaryForeground: '#0b0e0b',
-      muted: '#eceee7',
-      mutedForeground: '#5a655a', // 5.7:1
-      accent: '#e3e7dd',
-      accentForeground: '#0b0e0b',
-      border: '#dce2d8',
-      input: '#c8d1c4',
+      secondary: '#ededf0',
+      secondaryForeground: '#0c0c0e',
+      muted: '#ededf0',
+      mutedForeground: '#5c5d66', // 5.8:1
+      accent: '#e6e6ea',
+      accentForeground: '#0c0c0e',
+      border: '#dcdce1',
+      input: '#c4c4cc',
       ring: '#0f7a3d',
       success: '#0f7a3d',
       warning: '#8a6100',
@@ -43,27 +43,29 @@ export const appConfig: AppConfig = {
       info: '#0e6c7a',
     },
     dark: {
-      background: '#0a0d0a',
-      foreground: '#d5e3d5', // 14.7:1
-      card: '#0f130f',
-      cardForeground: '#d5e3d5',
-      popover: '#141914',
-      popoverForeground: '#d5e3d5',
-      primary: '#00e05c', // 11.0:1 on background
-      primaryForeground: '#04120a', // 11.0:1 on primary
-      secondary: '#1a201a',
-      secondaryForeground: '#d5e3d5',
-      muted: '#161b16',
-      mutedForeground: '#7e8f7e', // 5.7:1
-      accent: '#1c231c',
-      accentForeground: '#d5e3d5',
-      border: '#1c221c',
-      input: '#2a332a',
+      // Neutral zinc, not a green-tinted canvas. Green has to be the only saturated thing
+      // on screen or it stops reading as an accent and starts reading as a colour cast.
+      background: '#111113',
+      foreground: '#e4e4e7', // 14.9:1
+      card: '#191a1c',
+      cardForeground: '#e4e4e7',
+      popover: '#1e1f22',
+      popoverForeground: '#e4e4e7',
+      primary: '#00e05c', // 10.6:1 on background
+      primaryForeground: '#08130c', // 10.7:1 on primary
+      secondary: '#26272b',
+      secondaryForeground: '#e4e4e7',
+      muted: '#1e1f22',
+      mutedForeground: '#8e8f96', // 5.9:1
+      accent: '#26272b',
+      accentForeground: '#e4e4e7',
+      border: '#2a2b2f',
+      input: '#3a3b40',
       ring: '#00ff41', // canonical Matrix green, only ever a focus outline
       success: '#00e05c',
       warning: '#e8c547',
-      error: '#ff5f56',
-      destructive: '#ff5f56',
+      error: '#ff6b62',
+      destructive: '#ff6b62',
       info: '#5ad7e8',
     },
   },

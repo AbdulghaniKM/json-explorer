@@ -13,27 +13,27 @@
 
    Runtime values, per theme, come from app.config.ts via applyTheme(). */
 @theme {
-  --color-background: #0a0d0a;
-  --color-foreground: #d5e3d5;
-  --color-card: #0f130f;
-  --color-card-foreground: #d5e3d5;
-  --color-popover: #141914;
-  --color-popover-foreground: #d5e3d5;
+  --color-background: #111113;
+  --color-foreground: #e4e4e7;
+  --color-card: #191a1c;
+  --color-card-foreground: #e4e4e7;
+  --color-popover: #1e1f22;
+  --color-popover-foreground: #e4e4e7;
   --color-primary: #00e05c;
-  --color-primary-foreground: #04120a;
-  --color-secondary: #1a201a;
-  --color-secondary-foreground: #d5e3d5;
-  --color-muted: #161b16;
-  --color-muted-foreground: #7e8f7e;
-  --color-accent: #1c231c;
-  --color-accent-foreground: #d5e3d5;
-  --color-border: #1c221c;
-  --color-input: #2a332a;
+  --color-primary-foreground: #08130c;
+  --color-secondary: #26272b;
+  --color-secondary-foreground: #e4e4e7;
+  --color-muted: #1e1f22;
+  --color-muted-foreground: #8e8f96;
+  --color-accent: #26272b;
+  --color-accent-foreground: #e4e4e7;
+  --color-border: #2a2b2f;
+  --color-input: #3a3b40;
   --color-ring: #00ff41;
   --color-success: #00e05c;
   --color-warning: #e8c547;
-  --color-error: #ff5f56;
-  --color-destructive: #ff5f56;
+  --color-error: #ff6b62;
+  --color-destructive: #ff6b62;
   --color-info: #5ad7e8;
 
   /* Square by default. The html[data-shape] knob in this file still overrides it, but note
@@ -97,20 +97,21 @@
   --token-string: #00e05c;
   --token-number: #e8c547;
   --token-boolean: #e85ac7;
-  --token-null: #6e7f6e;
-  --token-punct: #4a564a;
+  --token-null: #7d7f88;
+  --token-punct: #4d4f57;
   --diff-added: #00e05c1f;
   --diff-removed: #ff5f561f;
   --diff-changed: #e8c5471f;
 
-  /* Braces and indent guides. Deliberately desaturated: nesting is magnitude, not category,
-     and it has to recede behind the token colors rather than compete with them. */
-  --depth-0: #7e8f7e;
-  --depth-1: #74857a;
-  --depth-2: #6a7b76;
-  --depth-3: #647471;
-  --depth-4: #5c6a68;
-  --depth-5: #55615f;
+  /* Braces and indent guides, cycling every six levels. These have to be distinguishable
+     from their neighbours or the ladder tells you nothing, so they reuse the ANSI token hues
+     rather than stepping through one. Guides render at low alpha; braces at full strength. */
+  --depth-0: #00e05c;
+  --depth-1: #5ad7e8;
+  --depth-2: #e8c547;
+  --depth-3: #e85ac7;
+  --depth-4: #8b9cff;
+  --depth-5: #9aa0a6;
 
   /* Mirrors src/config/density.ts, which injects the real values at boot. These cover the
      frame before that runs — keep them in step. */
@@ -133,18 +134,18 @@
   --token-string: #0f7a3d;
   --token-number: #8a6100;
   --token-boolean: #a02a8a;
-  --token-null: #7a857a;
-  --token-punct: #a3afa3;
+  --token-null: #83848d;
+  --token-punct: #a8a9b2;
   --diff-added: #0f7a3d1f;
   --diff-removed: #b91c1c1f;
   --diff-changed: #8a61001f;
 
-  --depth-0: #5a655a;
-  --depth-1: #626c63;
-  --depth-2: #6a736c;
-  --depth-3: #707a74;
-  --depth-4: #78817c;
-  --depth-5: #7f8884;
+  --depth-0: #0f7a3d;
+  --depth-1: #0e6c7a;
+  --depth-2: #8a6100;
+  --depth-3: #a02a8a;
+  --depth-4: #3a4fb8;
+  --depth-5: #6b6c75;
 }
 
 .depth-0 {
@@ -176,18 +177,18 @@
   width: var(--indent-width);
   align-self: stretch;
   background: currentColor;
-  opacity: 0.16;
+  opacity: 0.3;
 }
 
 .group:hover .indent-guide {
-  opacity: 0.26;
+  opacity: 0.55;
 }
 
 .line-guide {
   position: absolute;
   inset-block: 0;
   background: currentColor;
-  opacity: 0.14;
+  opacity: 0.28;
 }
 
 .tok-key {
